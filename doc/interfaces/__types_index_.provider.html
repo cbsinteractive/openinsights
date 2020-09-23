@@ -116,11 +116,13 @@
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="__types_index_.provider.html#makebeaconurl" class="tsd-kind-icon">make<wbr>BeaconURL</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="__types_index_.provider.html#onsendbeaconrejected" class="tsd-kind-icon">on<wbr>Send<wbr>Beacon<wbr>Rejected</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="__types_index_.provider.html#onsendbeaconresolved" class="tsd-kind-icon">on<wbr>Send<wbr>Beacon<wbr>Resolved</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="__types_index_.provider.html#ontestfailure" class="tsd-kind-icon">on<wbr>Test<wbr>Failure</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="__types_index_.provider.html#sendbeacon" class="tsd-kind-icon">send<wbr>Beacon</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="__types_index_.provider.html#setsessionconfig" class="tsd-kind-icon">set<wbr>Session<wbr>Config</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="__types_index_.provider.html#shouldrun" class="tsd-kind-icon">should<wbr>Run</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="__types_index_.provider.html#testsetup" class="tsd-kind-icon">test<wbr>Set<wbr>Up</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="__types_index_.provider.html#testteardown" class="tsd-kind-icon">test<wbr>Tear<wbr>Down</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="__types_index_.provider.html#validateresponsestatus" class="tsd-kind-icon">validate<wbr>Response<wbr>Status</a></li>
 							</ul>
 						</section>
 					</div>
@@ -350,7 +352,7 @@
 					<a name="getresourceurl" class="tsd-anchor"></a>
 					<h3>get<wbr>Resource<wbr>Url</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Resource<wbr>Url<span class="tsd-signature-symbol">(</span>testConfig<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">URL</span></li>
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Resource<wbr>Url<span class="tsd-signature-symbol">(</span>testConfig<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -377,7 +379,7 @@
 									</div>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">URL</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -535,6 +537,40 @@
 					</ul>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface">
+					<a name="ontestfailure" class="tsd-anchor"></a>
+					<h3>on<wbr>Test<wbr>Failure</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
+						<li class="tsd-signature tsd-kind-icon">on<wbr>Test<wbr>Failure<span class="tsd-signature-symbol">(</span>testConfig<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">unknown</span>, errorReason<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>A hook enabling providers to beacon an error result when a test fails.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>testConfig: <span class="tsd-signature-type">unknown</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>The test configuration.</p>
+									</div>
+								</li>
+								<li>
+									<h5>errorReason: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>A description of the error.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface">
 					<a name="sendbeacon" class="tsd-anchor"></a>
 					<h3>send<wbr>Beacon</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
@@ -679,6 +715,41 @@
 						</li>
 					</ul>
 				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface">
+					<a name="validateresponsestatus" class="tsd-anchor"></a>
+					<h3>validate<wbr>Response<wbr>Status</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
+						<li class="tsd-signature tsd-kind-icon">validate<wbr>Response<wbr>Status<span class="tsd-signature-symbol">(</span>testConfig<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">unknown</span>, statusCode<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>A hook enabling providers to determine which HTTP response codes should
+									be considered valid.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>testConfig: <span class="tsd-signature-type">unknown</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>The test configuration.</p>
+									</div>
+								</li>
+								<li>
+									<h5>statusCode: <span class="tsd-signature-type">number</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>The HTTP status code to test.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+						</li>
+					</ul>
+				</section>
 			</section>
 		</div>
 		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
@@ -808,6 +879,9 @@
 								<a href="__types_index_.provider.html#onsendbeaconresolved" class="tsd-kind-icon">on<wbr>Send<wbr>Beacon<wbr>Resolved</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-interface">
+								<a href="__types_index_.provider.html#ontestfailure" class="tsd-kind-icon">on<wbr>Test<wbr>Failure</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-interface">
 								<a href="__types_index_.provider.html#sendbeacon" class="tsd-kind-icon">send<wbr>Beacon</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-interface">
@@ -821,6 +895,9 @@
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-interface">
 								<a href="__types_index_.provider.html#testteardown" class="tsd-kind-icon">test<wbr>Tear<wbr>Down</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-interface">
+								<a href="__types_index_.provider.html#validateresponsestatus" class="tsd-kind-icon">validate<wbr>Response<wbr>Status</a>
 							</li>
 						</ul>
 					</li>

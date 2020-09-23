@@ -77,12 +77,22 @@ export default class Fetch<TC extends FetchConfiguration> extends Test<TC> {
             this.fetchObject(),
             asyncGetEntry(
                 this.getResourceUrl(),
-                (this._config as FetchConfiguration)
-                    .performanceTimingObserverTimeout || defaultTimeout,
+                this._config.performanceTimingObserverTimeout || defaultTimeout,
                 this._isValidEntryFunc,
             ),
         ]).then(
             ([response, entry]): Promise<TestResultBundle> => {
+                // This is the earliest opportunity to check the HTTP status
+                if (
+                    !this._provider.validateResponseStatus(
+                        this._config,
+                        response.status,
+                    )
+                ) {
+                    return Promise.reject(
+                        `Fetch response status code: ${response.status}`,
+                    )
+                }
                 return this._provider.createFetchTestResult(
                     entry,
                     response,
@@ -90,12 +100,7 @@ export default class Fetch<TC extends FetchConfiguration> extends Test<TC> {
                     setupResult,
                 )
             },
-        ).catch(reason => {
-            // A typical error caught here is when the resource was not found
-            // in the Resource Timing buffer within a reasonable amount of
-            // time.
-            return Promise.reject(reason)
-        })
+        )
     }
 
     /**
@@ -112,6 +117,27 @@ export default class Fetch<TC extends FetchConfiguration> extends Test<TC> {
      * @remarks
      * The provider has an opportunity to specify zero or more HTTP request
      * headers to be sent.
+     *
+     * There's no catch handler here. Look for errors in the catch handler
+     * found in @link{Test.execute}.
+     *
+     * Possible errors from the Fetch API under normal circumstances:
+     *
+     * * connection failure, e.g. firewall issue or misconfigured DNS.
+     *
+     *   Unfortunately by the time the browser registers this kind of problem,
+     *   the client should generally have already reported some error and
+     *   moved on. We will attempt to avoid this possibility by installing our
+     *   own timeout handler and aborting the request if we can.
+     *
+     * * CORS issues.
+     *
+     *   If the request succeeds but the response is missing the necessary
+     *   CORS headers, the request fails quickly and the Promise rejects.
+     *
+     * In general, don't base any logic on the reason given. Each user agent
+     * provides its own set of error descriptions, which presumably can change
+     * at any time.
      */
     fetchObject(): Promise<Response> {
         const init: RequestInit = {}
@@ -123,17 +149,5 @@ export default class Fetch<TC extends FetchConfiguration> extends Test<TC> {
         }
         const request = new Request(this.getResourceUrl(), init)
         return fetch(request)
-            .catch(reason => {
-                // This is the earliest point we can catch an error from the
-                // Fetch API under normal circumstances.
-                // A typical error caught here would be a connection failure,
-                // e.g. firewall issue or misconfigured DNS.
-                // Unfortunately by the time the browser registers this kind
-                // of problem, the client should already reported some error
-                // condition and moved on. We will attempt to avoid this
-                // possibility by installing our own timeout handler and
-                // aborting the request if we can.
-                return Promise.reject(reason)
-            })
     }
 }

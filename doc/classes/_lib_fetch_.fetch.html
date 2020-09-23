@@ -310,6 +310,24 @@
 									<dt>remarks</dt>
 									<dd><p>The provider has an opportunity to specify zero or more HTTP request
 										headers to be sent.</p>
+										<p>There&#39;s no catch handler here. Look for errors in the catch handler
+										found in @link{Test.execute}.</p>
+										<p>Possible errors from the Fetch API under normal circumstances:</p>
+										<ul>
+											<li><p>connection failure, e.g. firewall issue or misconfigured DNS.</p>
+												<p>Unfortunately by the time the browser registers this kind of problem,
+													the client should generally have already reported some error and
+													moved on. We will attempt to avoid this possibility by installing our
+												own timeout handler and aborting the request if we can.</p>
+											</li>
+											<li><p>CORS issues.</p>
+												<p>If the request succeeds but the response is missing the necessary
+												CORS headers, the request fails quickly and the Promise rejects.</p>
+											</li>
+										</ul>
+										<p>In general, don&#39;t base any logic on the reason given. Each user agent
+											provides its own set of error descriptions, which presumably can change
+										at any time.</p>
 									</dd>
 								</dl>
 							</div>
@@ -321,7 +339,7 @@
 					<a name="getresourceurl" class="tsd-anchor"></a>
 					<h3>get<wbr>Resource<wbr>Url</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Resource<wbr>Url<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">URL</span></li>
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Resource<wbr>Url<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -332,7 +350,7 @@
 									<p>Calls <a href="../interfaces/__types_index_.provider.html#getresourceurl">Provider.getResourceUrl</a> to generate the URL to be fetched.</p>
 								</div>
 							</div>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">URL</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 						</li>
 					</ul>
 				</section>

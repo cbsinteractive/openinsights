@@ -279,6 +279,14 @@ export interface Provider {
     expandTasks(): Executable[]
 
     /**
+     * A hook enabling providers to determine which HTTP response codes should
+     * be considered valid.
+     * @param testConfig The test configuration.
+     * @param statusCode The HTTP status code to test.
+     */
+    validateResponseStatus(testConfig: unknown, statusCode: number): boolean
+
+    /**
      * @remarks
      * A provider implements this in order to define its logic for creating
      * a {@link ResultBundle} describing the outcome of running a {@link Fetch}
@@ -376,6 +384,13 @@ export interface Provider {
      * @param testConfig The test configuration.
      */
     getBeaconMethod(testConfig: unknown): BeaconMethod
+
+    /**
+     * A hook enabling providers to beacon an error result when a test fails.
+     * @param testConfig  The test configuration.
+     * @param errorReason A description of the error.
+     */
+    onTestFailure(testConfig: unknown, errorReason: string): void
 }
 
 /**

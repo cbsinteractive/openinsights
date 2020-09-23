@@ -112,13 +112,13 @@ export abstract class Test<TC extends TestConfiguration> implements Executable {
             })
             .then((bundle) => this._provider.testTearDown(bundle))
             .catch(
-                (): Promise<TestResultBundle> => {
+                (errorReason): Promise<TestResultBundle> => {
                     this._state = TestState.Error
-                    // TODO: Notify subscribers of error
-                    // TODO: If we're going to resolve here (and maybe we
-                    // should reject instead), then perhaps we should
-                    // add some information about the error to the
-                    // TestResultBundle.
+                    // Give provider an opportunity to report an error
+                    this._provider.onTestFailure(
+                        this._config,
+                        errorReason
+                    )
                     return Promise.resolve({
                         providerName: this._provider.name,
                         testType: this._config.type,
@@ -126,6 +126,7 @@ export abstract class Test<TC extends TestConfiguration> implements Executable {
                         setupResult: {
                             data: {},
                         },
+                        errorReason,
                     })
                 },
             )
