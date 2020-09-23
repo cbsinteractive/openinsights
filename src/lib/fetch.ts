@@ -90,7 +90,12 @@ export default class Fetch<TC extends FetchConfiguration> extends Test<TC> {
                     setupResult,
                 )
             },
-        )
+        ).catch(reason => {
+            // A typical error caught here is when the resource was not found
+            // in the Resource Timing buffer within a reasonable amount of
+            // time.
+            return Promise.reject(reason)
+        })
     }
 
     /**
@@ -118,5 +123,17 @@ export default class Fetch<TC extends FetchConfiguration> extends Test<TC> {
         }
         const request = new Request(this.getResourceUrl(), init)
         return fetch(request)
+            .catch(reason => {
+                // This is the earliest point we can catch an error from the
+                // Fetch API under normal circumstances.
+                // A typical error caught here would be a connection failure,
+                // e.g. firewall issue or misconfigured DNS.
+                // Unfortunately by the time the browser registers this kind
+                // of problem, the client should already reported some error
+                // condition and moved on. We will attempt to avoid this
+                // possibility by installing our own timeout handler and
+                // aborting the request if we can.
+                return Promise.reject(reason)
+            })
     }
 }
