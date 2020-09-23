@@ -193,4 +193,18 @@ export default abstract class ProviderBase<SC, TC> implements Provider {
     testTearDown(testData: TestResultBundle): Promise<TestResultBundle> {
         return Promise.resolve(testData)
     }
+
+    /**
+     * See {@link Provider.validateResponseStatus}.
+     * @remarks
+     * A default implementation that tests for any success status.
+     */
+    validateResponseStatus(testConfig: TC, statusCode: number): boolean {
+        return statusCode >= 200 && statusCode < 300
+    }
+
+    /**
+     * See {@link Provider.onTestFailure}.
+     */
+    abstract onTestFailure(testConfig: unknown, errorReason: string): void
 }
