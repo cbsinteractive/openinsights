@@ -32,4 +32,7 @@ export class UnitTestProvider extends ProviderBase<
     shouldRun(): boolean {
         throw new Error("Method not implemented.")
     }
+    onTestFailure(): void {
+        throw new Error("Method not implemented.")
+    }
 }

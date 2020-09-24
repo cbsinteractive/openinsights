@@ -34,7 +34,7 @@ function isAsyncGetEntryResult(value: any): value is AsyncGetEntryResult {
 }
 
 type AsyncGetEntryError = {
-    error: Error
+    error: string
 }
 
 function isAsyncGetEntryError(value: any): value is AsyncGetEntryError {
@@ -55,13 +55,18 @@ type FetchExecuteTestConfig = TestCaseConfig & {
     sendBeaconArgs?: SendBeaconArgs[]
     testSetUpResult: TestSetupResult
     testTearDownResult?: TestResultBundle
+    validateResponseStatusResult?: boolean
 }
 
 describe("Fetch.execute", () => {
     const testCases: FetchExecuteTestConfig[] = [
-        makeBaseTestConfig(
-            "Send beacon on successful test, including test setup metadata",
-        ),
+        ((): FetchExecuteTestConfig => {
+            const result = makeBaseTestConfig(
+                "Send beacon on successful test, including test setup metadata",
+            )
+            result.validateResponseStatusResult = true
+            return result
+        })(),
         ((): FetchExecuteTestConfig => {
             const result = makeBaseTestConfig(
                 "Returns expected response headers",
@@ -72,6 +77,7 @@ describe("Fetch.execute", () => {
             result.expectedRequestHeaders = {
                 foo: "some value,some other value",
             }
+            result.validateResponseStatusResult = true
             return result
         })(),
         ((): FetchExecuteTestConfig => {
@@ -80,15 +86,15 @@ describe("Fetch.execute", () => {
                     " throw the expected error",
             )
             result.asyncGetEntryResult = {
-                error: new Error("Oh noes!"),
+                error: "Oh noes!",
             }
             delete result.sendBeaconArgs
             result.executeResult = {
                 testType: "some type",
-                setupResult: {
-                    data: {},
-                },
+                providerName: undefined,
+                setupResult: {},
                 data: [],
+                errorReason: new Error("Oh noes!"),
             }
             result.finalState = TestState.Error
             return result
@@ -116,6 +122,11 @@ describe("Fetch.execute", () => {
             provider.getResourceRequestHeaders.returns(
                 testCase.getResourceRequestHeadersResult,
             )
+            if (typeof testCase.validateResponseStatusResult == "boolean") {
+                provider.validateResponseStatus.returns(
+                    testCase.validateResponseStatusResult,
+                )
+            }
             provider.createFetchTestResult.returns(
                 Promise.resolve(testCase.createFetchTestResultResult),
             )
@@ -136,7 +147,9 @@ describe("Fetch.execute", () => {
             if (isAsyncGetEntryResult(testCase.asyncGetEntryResult)) {
                 asyncGetEntry.resolves(testCase.asyncGetEntryResult.entry)
             } else if (isAsyncGetEntryError(testCase.asyncGetEntryResult)) {
-                asyncGetEntry.rejects(testCase.asyncGetEntryResult.error)
+                asyncGetEntry.rejects(
+                    new Error(testCase.asyncGetEntryResult.error),
+                )
             }
 
             return fetch.execute().then((result) => {
@@ -310,11 +323,8 @@ describe("Fetch.test", () => {
                     testCase.fetchTestResult,
                 )
             }
+            provider.validateResponseStatus.returns(true)
             const fetch = new Fetch(provider, testCase.fetchConfig)
-
-            // Mock the fetchObject call
-            const response = sinon.createStubInstance(Response)
-            sinon.stub(fetch, "fetchObject").resolves(response)
 
             // Setup expected calls to window.performance.getEntries
             getEntries.returns(testCase.getEntriesResults)
