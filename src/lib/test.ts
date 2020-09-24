@@ -80,9 +80,13 @@ export abstract class Test<TC extends TestConfiguration> implements Executable {
      */
     execute(): Promise<TestResultBundle> {
         this._state = TestState.Running
+        let savedTestSetupResult: TestSetupResult
         return this._provider
             .testSetUp(this._config)
-            .then((setupResult) => this.test(setupResult))
+            .then((setupResult) => {
+                savedTestSetupResult = setupResult
+                return this.test(setupResult)
+            })
             .then((bundle) => {
                 // Set the provider name
                 bundle.providerName = this._provider.name
@@ -117,15 +121,14 @@ export abstract class Test<TC extends TestConfiguration> implements Executable {
                     // Give provider an opportunity to report an error
                     this._provider.onTestFailure(
                         this._config,
-                        errorReason
+                        savedTestSetupResult,
+                        errorReason,
                     )
                     return Promise.resolve({
                         providerName: this._provider.name,
                         testType: this._config.type,
                         data: [],
-                        setupResult: {
-                            data: {},
-                        },
+                        setupResult: savedTestSetupResult,
                         errorReason,
                     })
                 },

@@ -206,5 +206,9 @@ export default abstract class ProviderBase<SC, TC> implements Provider {
     /**
      * See {@link Provider.onTestFailure}.
      */
-    abstract onTestFailure(testConfig: unknown, errorReason: string): void
+    abstract onTestFailure(
+        testConfig: unknown,
+        setupResult: TestSetupResult,
+        errorReason: string,
+    ): void
 }

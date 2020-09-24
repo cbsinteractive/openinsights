@@ -387,10 +387,15 @@ export interface Provider {
 
     /**
      * A hook enabling providers to beacon an error result when a test fails.
-     * @param testConfig  The test configuration.
+     * @param testConfig The test configuration.
+     * @param setupResult The test setup result.
      * @param errorReason A description of the error.
      */
-    onTestFailure(testConfig: unknown, errorReason: string): void
+    onTestFailure(
+        testConfig: unknown,
+        setupResult: TestSetupResult,
+        errorReason: string,
+    ): void
 }
 
 /**
