@@ -113,6 +113,10 @@ export interface TestResultBundle {
      * The result of any test setup activity.
      */
     setupResult: TestSetupResult
+    /**
+     * Description of the error, if one occurred.
+     */
+    errorReason?: string | Error
 }
 
 /**
