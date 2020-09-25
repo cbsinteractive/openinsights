@@ -14,6 +14,10 @@ export interface FetchConfiguration {
      */
     type: string
     /**
+     * Time to wait before aborting fetch, in milliseconds.
+     */
+    timeout?: number
+    /**
      * PerformanceObserver timeout in milliseconds.
      */
     performanceTimingObserverTimeout?: number
@@ -43,6 +47,12 @@ export default class Fetch<TC extends FetchConfiguration> extends Test<TC> {
      * Timing entry.
      */
     private _isValidEntryFunc: ResourceTimingEntryValidationPredicate = defaultIsValidEntryFunc
+
+    /**
+     * An AbortController instance used to abort fetch requests that do not
+     * complete in a timely manner.
+     */
+    private _abortController: AbortController = new AbortController()
 
     /**
      * @remarks
@@ -148,6 +158,20 @@ export default class Fetch<TC extends FetchConfiguration> extends Test<TC> {
             init.headers = requestHeaders
         }
         const request = new Request(this.getResourceUrl(), init)
-        return fetch(request)
+        const args = this._config.timeout
+            ? { signal: this._abortController.signal }
+            : {}
+        const result = fetch(request, args).finally(() => {
+            this.clearTimeout()
+        })
+        // Initiate a timeout to let us abort the request if it takes too long
+        if (this._config.timeout) {
+            this.setTimeoutId(
+                window.setTimeout(() => {
+                    this._abortController.abort()
+                }, this._config.timeout),
+            )
+        }
+        return result
     }
 }
