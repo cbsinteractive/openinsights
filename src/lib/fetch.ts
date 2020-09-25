@@ -13,7 +13,7 @@ export interface FetchConfiguration {
      * Indicates whether the timeout was triggered. Used by the Fetch object
      * to record this event for use by providers downstream.
      */
-    timeoutTriggered: boolean
+    timeoutTriggered?: boolean
     /**
      * Indicates the test type.
      */
