@@ -52,6 +52,12 @@ export abstract class Test<TC extends TestConfiguration> implements Executable {
     private _state: TestState = TestState.NotStarted
 
     /**
+     * Id of the fetch timeout. This is used to cancel the timeout if the
+     * test succeeds or fails with an error before the timeout elapses.
+     */
+    private _timeoutId: number | undefined
+
+    /**
      * @param _provider The provider that owns the test
      * @param _config The provider-defined configuration for the test
      */
@@ -67,6 +73,27 @@ export abstract class Test<TC extends TestConfiguration> implements Executable {
          */
         protected _config: TC,
     ) {}
+
+    /**
+     * Set the id of the timeout used to trigger test failure if it takes
+     * too long.
+     * @param timeoutId The id of a timeout created by window.setTimeout
+     */
+    setTimeoutId(timeoutId: number): void {
+        if (this._timeoutId == undefined) {
+            this._timeoutId = timeoutId
+        }
+    }
+
+    /**
+     * Clear an timeout when the test is considered to have succeeded or
+     * failed in a normal way. Subsequent calls have no effect.
+     */
+    clearTimeout(): void {
+        if (typeof this._timeoutId == "number") {
+            window.clearTimeout(this._timeoutId)
+        }
+    }
 
     /**
      * Indicates the current state of the test.
