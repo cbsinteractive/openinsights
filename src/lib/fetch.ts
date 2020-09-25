@@ -10,6 +10,11 @@ import { Test } from "./test"
 
 export interface FetchConfiguration {
     /**
+     * Indicates whether the timeout was triggered. Used by the Fetch object
+     * to record this event for use by providers downstream.
+     */
+    timeoutTriggered: boolean
+    /**
      * Indicates the test type.
      */
     type: string
@@ -169,6 +174,7 @@ export default class Fetch<TC extends FetchConfiguration> extends Test<TC> {
             this.setTimeoutId(
                 window.setTimeout(() => {
                     this._abortController.abort()
+                    this._config.timeoutTriggered = true
                 }, this._config.timeout),
             )
         }
