@@ -18,6 +18,7 @@ export interface TestConfiguration {
 /**
  * The possible states that a {@link Test} can be in.
  */
+
 export enum TestState {
     /**
      * The test is not yet started.
@@ -37,6 +38,10 @@ export enum TestState {
      * test should not be able to move to another state.
      */
     Finished,
+    /**
+     * The test took too long to run.
+     */
+    Timeout,
 }
 
 /**
