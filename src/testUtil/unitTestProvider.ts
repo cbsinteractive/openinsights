@@ -4,11 +4,13 @@ import ProviderBase from "../lib/providerBase"
 export type UnitTestSessionConfig = unknown
 export type UnitTestTestConfig = unknown
 export type UnitTestBeaconData = BeaconData
+export type UnitTestTestResultBundle = TestResultBundle
 
 export class UnitTestProvider extends ProviderBase<
     UnitTestSessionConfig,
     UnitTestTestConfig,
-    UnitTestBeaconData
+    UnitTestBeaconData,
+    UnitTestTestResultBundle
 > {
     fetchSessionConfig(): Promise<UnitTestSessionConfig> {
         throw new Error("Method not implemented.")

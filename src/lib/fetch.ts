@@ -97,17 +97,10 @@ export default class Fetch<TC extends FetchConfiguration> extends Test<TC> {
             ),
         ]).then(
             ([response, entry]): Promise<TestResultBundle> => {
-                // This is the earliest opportunity to check the HTTP status
-                if (
-                    !this._provider.validateResponseStatus(
-                        this._config,
-                        response.status,
-                    )
-                ) {
-                    return Promise.reject(
-                        `Fetch response status code: ${response.status}`,
-                    )
-                }
+                // WARNING: If we get here, then the fetch technically completed,
+                // although the HTTP status may indicate an error condition.
+                // Providers should be aware of this and check `response.status`
+                // if it matters to them.
                 return this._provider.createFetchTestResult(
                     entry,
                     response,

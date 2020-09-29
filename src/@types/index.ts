@@ -279,14 +279,6 @@ export interface Provider {
     expandTasks(): Executable[]
 
     /**
-     * A hook enabling providers to determine which HTTP response codes should
-     * be considered valid.
-     * @param testConfig The test configuration.
-     * @param statusCode The HTTP status code to test.
-     */
-    validateResponseStatus(testConfig: unknown, statusCode: number): boolean
-
-    /**
      * @remarks
      * A provider implements this in order to define its logic for creating
      * a {@link ResultBundle} describing the outcome of running a {@link Fetch}
