@@ -17,8 +17,12 @@ import { KnownErrors } from "./errors"
  * @typeParam SC The type to be used for the internal session configuration.
  * @typeParam TC The type to be used for the test configuration.
  */
-export default abstract class ProviderBase<SC, TC, BD extends BeaconData>
-    implements Provider {
+export default abstract class ProviderBase<
+    SC,
+    TC,
+    BD extends BeaconData,
+    TRB extends TestResultBundle
+> implements Provider {
     /**
      * @param _name A provider-defined name.
      */
@@ -93,12 +97,12 @@ export default abstract class ProviderBase<SC, TC, BD extends BeaconData>
         response: Response,
         testConfig: TC,
         setupResult: TestSetupResult,
-    ): Promise<TestResultBundle>
+    ): Promise<TRB>
 
     /**
      * See {@link Provider.makeBeaconData}
      */
-    abstract makeBeaconData(testConfig: TC, testData: TestResultBundle): BD
+    abstract makeBeaconData(testConfig: TC, testData: TRB): BD
 
     /**
      * See {@link Provider.getResourceUrl}.
@@ -188,17 +192,8 @@ export default abstract class ProviderBase<SC, TC, BD extends BeaconData>
      * A no-op implementation for providers that don't need to perform any
      * tear down activity.
      */
-    testTearDown(testData: TestResultBundle): Promise<TestResultBundle> {
+    testTearDown(testData: TRB): Promise<TRB> {
         return Promise.resolve(testData)
-    }
-
-    /**
-     * See {@link Provider.validateResponseStatus}.
-     * @remarks
-     * A default implementation that tests for any success status.
-     */
-    validateResponseStatus(testConfig: TC, statusCode: number): boolean {
-        return statusCode >= 200 && statusCode < 300
     }
 
     /**

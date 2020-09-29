@@ -55,7 +55,6 @@ type FetchExecuteTestConfig = TestCaseConfig & {
     sendBeaconArgs?: SendBeaconArgs[]
     testSetUpResult: TestSetupResult
     testTearDownResult?: TestResultBundle
-    validateResponseStatusResult?: boolean
 }
 
 describe("Fetch.execute", () => {
@@ -64,7 +63,6 @@ describe("Fetch.execute", () => {
             const result = makeBaseTestConfig(
                 "Send beacon on successful test, including test setup metadata",
             )
-            result.validateResponseStatusResult = true
             return result
         })(),
         ((): FetchExecuteTestConfig => {
@@ -77,7 +75,6 @@ describe("Fetch.execute", () => {
             result.expectedRequestHeaders = {
                 foo: "some value,some other value",
             }
-            result.validateResponseStatusResult = true
             return result
         })(),
         ((): FetchExecuteTestConfig => {
@@ -122,11 +119,6 @@ describe("Fetch.execute", () => {
             provider.getResourceRequestHeaders.returns(
                 testCase.getResourceRequestHeadersResult,
             )
-            if (typeof testCase.validateResponseStatusResult == "boolean") {
-                provider.validateResponseStatus.returns(
-                    testCase.validateResponseStatusResult,
-                )
-            }
             provider.createFetchTestResult.returns(
                 Promise.resolve(testCase.createFetchTestResultResult),
             )
@@ -317,7 +309,6 @@ describe("Fetch.test", () => {
                     testCase.fetchTestResult,
                 )
             }
-            provider.validateResponseStatus.returns(true)
             const fetch = new Fetch(provider, testCase.fetchConfig)
 
             // Setup expected calls to window.performance.getEntries
