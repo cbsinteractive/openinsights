@@ -202,9 +202,6 @@ describe("Fetch.execute", () => {
                 data: [{ foo: "foo" }, { bar: "bar" }],
                 beaconData: {
                     state: BeaconState.Success,
-                    testConfig: {
-                        type: "foo",
-                    },
                     data: {
                         a: 123,
                         b: "abc",
@@ -226,9 +223,6 @@ describe("Fetch.execute", () => {
             finalState: TestState.Finished,
             makeBeaconDataResult: {
                 state: BeaconState.Success,
-                testConfig: {
-                    type: "foo",
-                },
                 data: {
                     a: 123,
                     b: "abc",

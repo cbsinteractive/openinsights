@@ -35,17 +35,11 @@ describe("ProviderBase", () => {
                 }
                 const data: BeaconData = {
                     state: BeaconState.Success,
-                    testConfig: {
-                        type: "some type",
-                    },
                 }
                 // Code under test
                 expect(provider.encodeBeaconData(testConfig, data)).toEqual(
                     JSON.stringify({
                         state: BeaconState.Success,
-                        testConfig: {
-                            type: "some type",
-                        },
                     }),
                 )
             },

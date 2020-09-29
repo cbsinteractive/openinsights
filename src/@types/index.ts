@@ -55,10 +55,6 @@ export interface BeaconData {
      */
     state: BeaconState
     /**
-     * The configuration of the associated {@link Test}
-     */
-    testConfig: unknown
-    /**
      * An object containing provider-defined test data to be beaconed.
      */
     data?: unknown

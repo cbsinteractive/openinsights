@@ -17,7 +17,8 @@ import { KnownErrors } from "./errors"
  * @typeParam SC The type to be used for the internal session configuration.
  * @typeParam TC The type to be used for the test configuration.
  */
-export default abstract class ProviderBase<SC, TC> implements Provider {
+export default abstract class ProviderBase<SC, TC, BD extends BeaconData>
+    implements Provider {
     /**
      * @param _name A provider-defined name.
      */
@@ -97,10 +98,7 @@ export default abstract class ProviderBase<SC, TC> implements Provider {
     /**
      * See {@link Provider.makeBeaconData}
      */
-    abstract makeBeaconData(
-        testConfig: TC,
-        testData: TestResultBundle,
-    ): BeaconData
+    abstract makeBeaconData(testConfig: TC, testData: TestResultBundle): BD
 
     /**
      * See {@link Provider.getResourceUrl}.
@@ -127,7 +125,7 @@ export default abstract class ProviderBase<SC, TC> implements Provider {
      * @remarks
      * A default implementation that does simple JSON-encoding.
      */
-    encodeBeaconData(testConfig: TC, data: BeaconData): string {
+    encodeBeaconData(testConfig: TC, data: BD): string {
         return JSON.stringify(data)
     }
 
