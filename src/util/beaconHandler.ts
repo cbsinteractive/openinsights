@@ -22,8 +22,12 @@ export abstract class BeaconHandler<R> {
      * @param url URL to send beacon data to
      * @param data Beacon data to send
      */
-    send(url: string, data?: string): Promise<R> {
-        if (hasBeaconSupport) {
+    send(
+        url: string,
+        data?: string,
+        headers?: Record<string, string>,
+    ): Promise<R> {
+        if (hasBeaconSupport && !headers) {
             if (navigator.sendBeacon(url, data)) {
                 return Promise.resolve(this.makeSendResult())
             }
@@ -31,10 +35,14 @@ export abstract class BeaconHandler<R> {
             // duplicate reporting?
             return Promise.reject(new Error("navigator.sendBeacon failed"))
         }
-        return fetch(url, {
+        const init: RequestInit = {
             body: data,
             keepalive: true,
-        }).then((r) => this.makeSendResult(r))
+        }
+        if (headers) {
+            init.headers = new Headers(headers)
+        }
+        return fetch(url, init).then((r) => this.makeSendResult(r))
     }
 
     abstract makeSendResult(r?: Response): R
