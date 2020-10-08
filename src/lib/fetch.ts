@@ -1,23 +1,12 @@
-import {
-    Provider,
-    ResourceTimingEntry,
-    ResourceTimingEntryValidationPredicate,
-    TestResultBundle,
-    TestSetupResult,
-} from "../@types"
+import { ResourceTimingEntry } from "../@types"
+import { BeaconHandler } from "../util/beaconHandler"
 import { asyncGetEntry } from "./resourceTiming"
-import { Test } from "./test"
+import { Test, TestConfiguration } from "./test"
 
-export interface FetchConfiguration {
-    /**
-     * Indicates whether the timeout was triggered. Used by the Fetch object
-     * to record this event for use by providers downstream.
-     */
-    timeoutTriggered?: boolean
-    /**
-     * Indicates the test type.
-     */
-    type: string
+/**
+ * Contains common fetch configuration attributes
+ */
+export interface FetchConfiguration extends TestConfiguration {
     /**
      * Time to wait before aborting fetch, in milliseconds.
      */
@@ -28,12 +17,9 @@ export interface FetchConfiguration {
     performanceTimingObserverTimeout?: number
 }
 
-/**
- * The default function used to validate Resource Timing entries.
- * @param e The entry to validate.
- */
-const defaultIsValidEntryFunc: ResourceTimingEntryValidationPredicate = (e) =>
-    e.requestStart !== 0 && e.connectStart !== e.connectEnd
+export interface FetchTestResultBundle {
+    timeoutTriggered?: boolean
+}
 
 /**
  * Class representing a basic "fetch" test. It fetches a supplied resource from the
@@ -44,78 +30,91 @@ const defaultIsValidEntryFunc: ResourceTimingEntryValidationPredicate = (e) =>
  * enabling providers to control certain implementation details supporting their
  * use case.
  *
- * @typeParam TC The type to be used for the internal test configuration.
+ * @typeParam C The type to be used for the internal test configuration.
+ * @typeParam D The type to be used for fetch test results.
+ * @typeParam SBR The type to be used for send beacon results.
+ * @typeParam D The type to be used for the fetch beacon data.
  */
-export default class Fetch<TC extends FetchConfiguration> extends Test<TC> {
-    /**
-     * The predicate function used to determine the validity of a Resource
-     * Timing entry.
-     */
-    private _isValidEntryFunc: ResourceTimingEntryValidationPredicate = defaultIsValidEntryFunc
-
+export abstract class Fetch<
+    C extends FetchConfiguration,
+    R extends FetchTestResultBundle,
+    D,
+    SBR
+> extends Test<C, R, D, SBR> {
     /**
      * An AbortController instance used to abort fetch requests that do not
      * complete in a timely manner.
      */
     private _abortController: AbortController = new AbortController()
 
-    /**
-     * @remarks
-     * A provider may override the default logic used to determine a valid
-     * Resource Timing entry using the optional isValidEntryFunc argument.
-     * @param provider The provider that owns the test.
-     * @param config The test configuration.
-     * @param validEntryFunc An optional provider-defined function used to
-     * validate Resource Timing entries.
-     */
-    constructor(
-        provider: Provider,
-        config: TC,
-        validEntryFunc?: ResourceTimingEntryValidationPredicate,
-    ) {
-        super(provider, config)
-        if (validEntryFunc) {
-            this._isValidEntryFunc = validEntryFunc
-        }
+    constructor(config: C, testResult: R, beaconHandler: BeaconHandler<SBR>) {
+        super(config, testResult, beaconHandler)
     }
 
     /**
-     * Fetch test implementation
-     * @param setupResult Result of the previous {@link Provider.testSetUp} call
-     * @returns A Promise resolving to a {@link ResultBundle} object, the
-     * result of calling {@link Provider.createFetchTestResult} when the test
-     * data has been obtained.
+     * A hook enabling providers to generate a test URL at runtime.
+     * @remarks
+     * A provider may cache the result of the first call to this method and
+     * reuse the value on subsequent calls.
      */
-    test(setupResult: TestSetupResult): Promise<TestResultBundle> {
+    abstract get resourceURL(): string
+
+    /**
+     * A hook enabling providers to update the test results object.
+     */
+    abstract updateFetchTestResults(
+        response: Response,
+        entry: ResourceTimingEntry,
+    ): Promise<void>
+
+    /**
+     * TODO
+     * @param reason
+     */
+    abstract onError(reason: unknown): Promise<void>
+
+    /**
+     * A hook enabling providers to specify a set of zero or more
+     * HTTP request headers to be sent when peforming the fetch.
+     * This is a default implementation that returns an empty set.
+     */
+    get resourceRequestHeaders(): Record<string, string> {
+        return {}
+    }
+
+    /**
+     * A provider may override the default logic used to determine a valid
+     * Resource Timing entry using the optional isValidEntryFunc argument.
+     */
+    makeValidateResourceTimingEntryFunc(): (e: ResourceTimingEntry) => boolean {
+        return (e) => e.requestStart !== 0 && e.connectStart !== e.connectEnd
+    }
+
+    /**
+     * See {@link Test.test}.
+     */
+    test(): Promise<void> {
         const defaultTimeout = 5000
         return Promise.all<Response, ResourceTimingEntry>([
             this.fetchObject(),
             asyncGetEntry(
-                this.getResourceUrl(),
-                this._config.performanceTimingObserverTimeout || defaultTimeout,
-                this._isValidEntryFunc,
+                this.resourceURL,
+                this.config.performanceTimingObserverTimeout || defaultTimeout,
+                this.makeValidateResourceTimingEntryFunc(),
             ),
-        ]).then(
-            ([response, entry]): Promise<TestResultBundle> => {
-                // WARNING: If we get here, then the fetch technically completed,
-                // although the HTTP status may indicate an error condition.
-                // Providers should be aware of this and check `response.status`
-                // if it matters to them.
-                return this._provider.createFetchTestResult(
-                    entry,
-                    response,
-                    this._config,
-                    setupResult,
-                )
-            },
-        )
-    }
-
-    /**
-     * Calls {@link Provider.getResourceUrl} to generate the URL to be fetched.
-     */
-    getResourceUrl(): string {
-        return this._provider.getResourceUrl(this._config)
+        ])
+            .then(
+                ([response, entry]): Promise<void> => {
+                    // WARNING: If we get here, then the fetch technically completed,
+                    // although the HTTP status may indicate an error condition.
+                    // Providers should be aware of this and check `response.status`
+                    // if it matters to them.
+                    return this.updateFetchTestResults(response, entry)
+                },
+            )
+            .catch((reason) => {
+                return this.onError(reason)
+            })
     }
 
     /**
@@ -149,26 +148,23 @@ export default class Fetch<TC extends FetchConfiguration> extends Test<TC> {
      */
     fetchObject(): Promise<Response> {
         const init: RequestInit = {}
-        const requestHeaders = this._provider.getResourceRequestHeaders(
-            this._config,
-        )
-        if (Object.keys(requestHeaders).length) {
-            init.headers = requestHeaders
+        if (Object.keys(this.resourceRequestHeaders).length) {
+            init.headers = this.resourceRequestHeaders
         }
-        const request = new Request(this.getResourceUrl(), init)
-        const args = this._config.timeout
+        const request = new Request(this.resourceURL, init)
+        const args = this.config.timeout
             ? { signal: this._abortController.signal }
             : {}
         const result = fetch(request, args).finally(() => {
             this.clearTimeout()
         })
         // Initiate a timeout to let us abort the request if it takes too long
-        if (this._config.timeout) {
+        if (this.config.timeout) {
             this.setTimeoutId(
                 window.setTimeout(() => {
                     this._abortController.abort()
-                    this._config.timeoutTriggered = true
-                }, this._config.timeout),
+                    this.testResults.timeoutTriggered = true
+                }, this.config.timeout),
             )
         }
         return result

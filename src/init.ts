@@ -50,16 +50,23 @@ function start(settings: ClientSettings): Promise<SessionResult> {
     const activeProviders = settings.providers.filter((p) => p.shouldRun())
     return Promise.allSettled(
         activeProviders.map((provider) => provider.fetchSessionConfig()),
-    ).then((settled) => {
-        const executables: Executable[] = []
-        settled.forEach((result, idx) => {
-            if (result.status === "fulfilled") {
-                const provider = activeProviders[idx]
-                provider.setSessionConfig(result.value)
-                executables.push(...provider.expandTasks())
-            }
+    )
+        .then((settled) => {
+            const executables: Executable[] = []
+            settled.forEach((result, idx) => {
+                if (result.status === "fulfilled") {
+                    const provider = activeProviders[idx]
+                    provider.setSessionConfig(result.value)
+                    executables.push(...provider.expandTasks())
+                }
+            })
+            const process = settings.sessionProcess || defaultSessionProcessFunc
+            return process(executables)
         })
-        const process = settings.sessionProcess || defaultSessionProcessFunc
-        return process(executables)
-    })
+        .catch((reason) => {
+            return Promise.resolve({
+                initError: reason,
+                testResults: [],
+            })
+        })
 }
