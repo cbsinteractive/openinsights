@@ -65,6 +65,10 @@ export abstract class Test<C extends TestConfiguration, R, D, SBR>
      */
     abstract get beaconURL(): string
 
+    get beaconHeaders(): Record<string, string> | undefined {
+        return
+    }
+
     /**
      * Set the id of the timeout used to trigger test failure if it takes
      * too long.
@@ -144,6 +148,7 @@ export abstract class Test<C extends TestConfiguration, R, D, SBR>
         return this._beaconHandler.send(
             this.beaconURL,
             this.encodeBeaconData(this.beaconData),
+            this.beaconHeaders,
         )
     }
 
