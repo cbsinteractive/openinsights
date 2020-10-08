@@ -1,6 +1,3 @@
-import { KnownErrors } from "../lib/errors"
-import { BeaconMethod } from "../util/beacon"
-
 /**
  * An interface representing simple objects mapping strings to basic primative
  * types.
@@ -28,39 +25,6 @@ export interface TestSetupResult {
 }
 
 /**
- * BeaconState represents the possible values of the BeaconData.state flag.
- */
-export enum BeaconState {
-    /**
-     * The test completed successfully.
-     */
-    Success,
-    /**
-     * The test failed.
-     */
-    Failure,
-    /**
-     * Test status is undetermined.
-     */
-    Unknown,
-}
-
-/**
- * BeaconData represents test data to be sent back according to provider
- * specifications.
- */
-export interface BeaconData {
-    /**
-     * The result state of the associated {@link Test}
-     */
-    state: BeaconState
-    /**
-     * An object containing provider-defined test data to be beaconed.
-     */
-    data?: unknown
-}
-
-/**
  * A type representing a Resource Timing API entry having _entryType_
  * "resource".
  *
@@ -79,43 +43,6 @@ export type ResourceTimingEntryValidationPredicate = (
 ) => boolean
 
 /**
- * Represents the result of one aspect of a test. There may be more than one
- * result object for a particular test type, in case multiple transactions are
- * involved.
- */
-export type TestResult = unknown
-
-/**
- * Represents the completed result of a test.
- */
-export interface TestResultBundle {
-    /**
-     * Name of the provider responsible for the test.
-     */
-    providerName?: string
-    /**
-     * Data to be sent to the provider's ingest services.
-     */
-    beaconData?: BeaconData
-    /**
-     * A string representing the test type.
-     */
-    testType: string
-    /**
-     * An array of objects representing individual component results.
-     */
-    data: TestResult[]
-    /**
-     * The result of any test setup activity.
-     */
-    setupResult: TestSetupResult
-    /**
-     * Description of the error, if one occurred.
-     */
-    errorReason?: string | Error
-}
-
-/**
  * Represents the return value of a "client info request".
  * @remarks
  * This type of request is typically made in order to capture the client
@@ -131,7 +58,7 @@ export interface SessionResult {
      * An array containing the test result bundles for each individual test
      * performed.
      */
-    testResults: TestResultBundle[]
+    testResults: unknown[]
 }
 
 /* eslint-disable @typescript-eslint/no-empty-interface */
@@ -207,16 +134,11 @@ export interface NetworkInformation {
  */
 export interface Executable {
     /**
-     * Execute a test and return a Promise resolving to a test result bundle.
+     * Execute a test and return a Promise that resolves to a provider-defined
+     * test result object.
      */
-    execute(): Promise<TestResultBundle>
+    execute(): Promise<unknown>
 }
-
-/**
- * A possible resolution result of the Promise returned by
- * {@link Provider.sendBeacon}.
- */
-export type SendBeaconResult = Response | void
 
 /**
  * An interface representing a provider.
@@ -232,21 +154,6 @@ export interface Provider {
      * {@link Provider.fetchSessionConfig}.
      */
     sessionConfig?: unknown
-
-    /**
-     * A hook called before each test begins, giving the provider an
-     * opportunity to perform any pre-test setup needed, such as recording a
-     * timestamp.
-     * @param testConfig The test configuration.
-     */
-    testSetUp(testConfig: unknown): Promise<TestSetupResult>
-
-    /**
-     * A hook called after each test has completed, giving the provider an
-     * opportunity to perform any post-test activity needed.
-     * @param testData The test results.
-     */
-    testTearDown(testData: TestResultBundle): Promise<TestResultBundle>
 
     /**
      * Called within {@link start} to sets the provider's session configuration
@@ -277,117 +184,6 @@ export interface Provider {
      * {@link Test}).
      */
     expandTasks(): Executable[]
-
-    /**
-     * @remarks
-     * A provider implements this in order to define its logic for creating
-     * a {@link ResultBundle} describing the outcome of running a {@link Fetch}
-     * test.
-     * @param timingEntry The Resource Timing entry used to generate the test
-     * result.
-     * @param response The **Response** object resulting from the fetch
-     * activity.
-     * @param testConfig The test configuration.
-     * @param setupResult The provider-defined result of any test setup
-     * activity done prior to the fetch.
-     */
-    createFetchTestResult(
-        timingEntry: ResourceTimingEntry,
-        response: Response,
-        testConfig: unknown,
-        setupResult: TestSetupResult,
-    ): Promise<TestResultBundle>
-
-    /**
-     * @remarks
-     * A provider implements this in order to create a beacon payload.
-     * @param testConfig The test configuration.
-     * @param testData The data resulting from running the test.
-     */
-    makeBeaconData(testConfig: unknown, testData: TestResultBundle): BeaconData
-
-    /**
-     * A hook enabling providers to determine the beacon URL for a test.
-     * result.
-     * @param testConfig The test configuration.
-     */
-    makeBeaconURL(testConfig: unknown): string
-
-    /**
-     * A hook enabling providers to generate a test URL at runtime.
-     * @remarks
-     * A provider may cache the result of the first call to this method and
-     * reuse the value on subsequent calls.
-     * @param testConfig The test configuration, which usually specifies a base
-     * URL from which the provider produces the runtime URL.
-     */
-    getResourceUrl(testConfig: unknown): string
-
-    /**
-     * A hook enabling providers to specify a set of zero or more HTTP request
-     * headers to be sent with the test.
-     * @param testConfig The test configuration.
-     */
-    getResourceRequestHeaders(testConfig: unknown): Record<string, string>
-
-    /**
-     * A hook enabling providers to handle an error emitted by the core
-     * module.
-     * @param errorType
-     * @param innerError
-     */
-    handleError(errorType: KnownErrors, innerError: Error): void
-
-    /**
-     * A hook enabling providers to perform encoding of beacon data before
-     * sending it, such as `JSON.stringify()` or other serialization methods.
-     * @param testConfig The test configuration.
-     * @param data The data to be encoded.
-     */
-    encodeBeaconData(testConfig: unknown, data: BeaconData): string
-
-    /**
-     * Called when the Promise returned by {@link sendBeacon} is rejected.
-     * @param error An error describing the problem.
-     */
-    onSendBeaconRejected(error: Error): void
-
-    /**
-     * Called when the Promise returned by {@link sendBeacon} is resolved.
-     * @param result The Response object in case the Fetch API was used, or
-     * `void` if the Beacon API was used.
-     */
-    onSendBeaconResolved(result: SendBeaconResult): void
-
-    /**
-     * A hook enabling providers to report test results, i.e. "beaconing".
-     * @param testConfig The test configuration.
-     * @param encodedBeaconData The beacon payload returned from
-     * {@link Provider.encodeBeaconData}.
-     */
-    sendBeacon(
-        testConfig: unknown,
-        encodedBeaconData: string,
-    ): Promise<SendBeaconResult>
-
-    /**
-     * A hook enabling providers to specify the HTTP method used to send
-     * beacon data.
-     * @param testConfig The test configuration.
-     */
-    getBeaconMethod(testConfig: unknown): BeaconMethod
-
-    /**
-     * A hook enabling providers to beacon an error result when a test fails.
-     * @param testConfig The test configuration.
-     * @param setupResult The test setup result.
-     * @param errorReason A description of the error.
-     */
-    onTestFailure(
-        testConfig: unknown,
-        setupResult: TestSetupResult,
-        errorReason: string,
-    ): void
 }
 
 /**

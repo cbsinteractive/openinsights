@@ -35,6 +35,6 @@ import init from "./init"
 import ClientSettingsBuilder from "./util/clientSettingsBuilder"
 import Provider from "./lib/providerBase"
 import { Test } from "./lib/test"
-import Fetch from "./lib/fetch"
+import { Fetch } from "./lib/fetch"
 
 export { init, ClientSettingsBuilder, Provider, Test, Fetch }

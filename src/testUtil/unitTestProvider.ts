@@ -18,9 +18,6 @@ export class UnitTestProvider extends ProviderBase<
     expandTasks(): Executable[] {
         throw new Error("Method not implemented.")
     }
-    createFetchTestResult(): Promise<TestResultBundle> {
-        throw new Error("Method not implemented.")
-    }
     makeBeaconData(): BeaconData {
         throw new Error("Method not implemented.")
     }
@@ -28,9 +25,6 @@ export class UnitTestProvider extends ProviderBase<
         throw new Error("Method not implemented.")
     }
     getResourceRequestHeaders(): Record<string, string> {
-        throw new Error("Method not implemented.")
-    }
-    handleError(): void {
         throw new Error("Method not implemented.")
     }
     shouldRun(): boolean {
