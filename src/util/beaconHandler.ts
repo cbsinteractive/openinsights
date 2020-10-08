@@ -36,6 +36,7 @@ export abstract class BeaconHandler<R> {
             return Promise.reject(new Error("navigator.sendBeacon failed"))
         }
         const init: RequestInit = {
+            method: "POST",
             body: data,
             keepalive: true,
         }
