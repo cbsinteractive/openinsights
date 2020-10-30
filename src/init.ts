@@ -48,6 +48,9 @@ function startLater(
  */
 function start(settings: ClientSettings): Promise<SessionResult> {
     const activeProviders = settings.providers.filter((p) => p.shouldRun())
+    if (!activeProviders.length) {
+        return Promise.resolve({ testResults: [] })
+    }
     return Promise.allSettled(
         activeProviders.map((provider) => provider.fetchSessionConfig()),
     )
