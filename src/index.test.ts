@@ -1,15 +1,11 @@
+import * as sut from "./index"
+
 describe("index.ts", () => {
-    interface TestConfig {
-        description: string
-    }
-    const tests: Array<TestConfig> = [
-        {
-            description: "Replace me!",
-        },
-    ]
-    tests.forEach((i) => {
-        test(i.description, () => {
-            expect.assertions(0)
-        })
+    test("exports", () => {
+        expect(sut).toHaveProperty("init")
+        expect(sut).toHaveProperty("ClientSettingsBuilder")
+        expect(sut).toHaveProperty("Provider")
+        expect(sut).toHaveProperty("Test")
+        expect(sut).toHaveProperty("Fetch")
     })
 })
