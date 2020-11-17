@@ -66,7 +66,10 @@ describe("Fetch", () => {
             testResultBundle: FetchTestResultBundle
             beaconHandler: UnitTestBeaconHandler
             expectedResult: Record<string, unknown>
-            asyncGetEntryResponse: SimpleObject
+            /**
+             * If missing, then the asyncGetEntry Promise will be rejected
+             */
+            asyncGetEntryResponse?: SimpleObject
             fetchObjectProperties: PropertyDescriptorMap
         }
         const DEFAULT_FETCH_CONFIG: FetchConfiguration = { type: "some type" }
@@ -78,6 +81,31 @@ describe("Fetch", () => {
                 beaconHandler: new UnitTestBeaconHandler({ a: 0 }),
                 expectedResult: { a: 123 },
                 asyncGetEntryResponse: { foo: "bar" },
+                fetchObjectProperties: {
+                    resourceURL: {
+                        value: "some resource URL",
+                    },
+                    beaconURL: {
+                        value: "some beacon URL",
+                    },
+                    beaconData: {
+                        value: {
+                            foo: "bar",
+                        },
+                    },
+                    _results: {
+                        value: {
+                            a: 123,
+                        },
+                    },
+                },
+            },
+            {
+                description: "Fail to find Resource Timing entry",
+                fetchConfig: Object.assign({}, DEFAULT_FETCH_CONFIG),
+                testResultBundle: {},
+                beaconHandler: new UnitTestBeaconHandler({ a: 0 }),
+                expectedResult: { a: 123 },
                 fetchObjectProperties: {
                     resourceURL: {
                         value: "some resource URL",
@@ -110,7 +138,13 @@ describe("Fetch", () => {
                     return Promise.resolve()
                 }
                 Object.defineProperties(sut, i.fetchObjectProperties)
-                asyncGetEntryMock.mockResolvedValueOnce(i.asyncGetEntryResponse)
+                if (i.asyncGetEntryResponse) {
+                    asyncGetEntryMock.mockResolvedValueOnce(
+                        i.asyncGetEntryResponse,
+                    )
+                } else {
+                    asyncGetEntryMock.mockRejectedValueOnce(new Error("Foo"))
+                }
                 sut.updateFetchTestResults = jest
                     .fn()
                     .mockResolvedValueOnce(undefined)
