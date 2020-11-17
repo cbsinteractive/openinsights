@@ -1,73 +1,126 @@
-import { SimpleObject } from "../@types"
+import fetchMock from "jest-fetch-mock"
+import { ResourceTimingEntry, SimpleObject } from "../@types"
 import { BeaconHandler } from "../util/beaconHandler"
 import { Fetch, FetchConfiguration, FetchTestResultBundle } from "./fetch"
+import { asyncGetEntry } from "./resourceTiming"
+
+jest.mock("./resourceTiming")
+
+const asyncGetEntryMock = asyncGetEntry as jest.Mock<
+    Promise<ResourceTimingEntry>
+>
+
+beforeEach(() => {
+    fetchMock.resetMocks()
+    asyncGetEntryMock.mockReset()
+})
 
 describe("Fetch", () => {
-    type SomeConfiguration = FetchConfiguration
-    type SomeResultBundle = FetchTestResultBundle
-    class UnitTestFetch extends Fetch<
-        SomeConfiguration,
-        SomeResultBundle,
-        unknown,
-        unknown
-    > {
-        get resourceURL(): string {
-            throw new Error("Method not implemented.")
+    describe("execute", () => {
+        type SomeConfiguration = FetchConfiguration
+        type SomeResultBundle = FetchTestResultBundle
+        class UnitTestFetch extends Fetch<
+            SomeConfiguration,
+            SomeResultBundle,
+            unknown,
+            unknown
+        > {
+            get resourceURL(): string {
+                throw new Error("Method not mocked.")
+            }
+            updateFetchTestResults(): Promise<void> {
+                throw new Error("Method not mocked.")
+            }
+            onError(): Promise<void> {
+                throw new Error("Method not mocked.")
+            }
+            get beaconData(): unknown {
+                throw new Error("Method not mocked.")
+            }
+            get beaconURL(): string {
+                throw new Error("Method not mocked.")
+            }
+            testSetup(): Promise<void> {
+                throw new Error("Method not mocked.")
+            }
+            onSendBeaconResolved(): void {
+                // Do nothing
+            }
+            onSendBeaconRejected(): void {
+                // Do nothing
+            }
         }
-        updateFetchTestResults(
-            response: Response,
-            entry: SimpleObject,
-        ): Promise<void> {
-            throw new Error("Method not implemented.")
-        }
-        onError(reason: unknown): Promise<void> {
-            throw new Error("Method not implemented.")
-        }
-        get beaconData(): unknown {
-            throw new Error("Method not implemented.")
-        }
-        get beaconURL(): string {
-            throw new Error("Method not implemented.")
-        }
-        testSetup(): Promise<void> {
-            throw new Error("Method not implemented.")
-        }
-        onSendBeaconResolved(result: unknown): void {
-            throw new Error("Method not implemented.")
-        }
-        onSendBeaconRejected(reason: unknown): void {
-            throw new Error("Method not implemented.")
-        }
-    }
 
-    class UnitTestBeaconHandler extends BeaconHandler<number> {
-        makeSendResult(r?: Response): number {
-            throw new Error("Method not implemented.")
+        class UnitTestBeaconHandler extends BeaconHandler<unknown> {
+            constructor(private _expectedResult: unknown) {
+                super()
+            }
+            makeSendResult(): unknown {
+                return this._expectedResult
+            }
         }
-    }
 
-    interface TestConfig {
-        description: string
-        fetchConfig: FetchConfiguration
-        testResultBundle: FetchTestResultBundle
-        beaconHandler: UnitTestBeaconHandler
-    }
-    const DEFAULT_FETCH_CONFIG: FetchConfiguration = { type: "some type" }
-    const tests: Array<TestConfig> = [
-        {
-            description: "Change me",
-            fetchConfig: Object.assign({}, DEFAULT_FETCH_CONFIG),
-            testResultBundle: {},
-            beaconHandler: new UnitTestBeaconHandler(),
-        },
-    ]
-    tests.forEach((i) => {
-        test(i.description, () => {
-            const sut = new UnitTestFetch(
-                i.fetchConfig,
-                i.testResultBundle,
-                i.beaconHandler,
-            )
+        interface TestConfig {
+            description: string
+            fetchConfig: FetchConfiguration
+            testResultBundle: FetchTestResultBundle
+            beaconHandler: UnitTestBeaconHandler
+            expectedResult: Record<string, unknown>
+            asyncGetEntryResponse: SimpleObject
+            fetchObjectProperties: PropertyDescriptorMap
+        }
+        const DEFAULT_FETCH_CONFIG: FetchConfiguration = { type: "some type" }
+        const tests: Array<TestConfig> = [
+            {
+                description: "Successful fetch",
+                fetchConfig: Object.assign({}, DEFAULT_FETCH_CONFIG),
+                testResultBundle: {},
+                beaconHandler: new UnitTestBeaconHandler({ a: 0 }),
+                expectedResult: { a: 123 },
+                asyncGetEntryResponse: { foo: "bar" },
+                fetchObjectProperties: {
+                    resourceURL: {
+                        value: "some resource URL",
+                    },
+                    beaconURL: {
+                        value: "some beacon URL",
+                    },
+                    beaconData: {
+                        value: {
+                            foo: "bar",
+                        },
+                    },
+                    _results: {
+                        value: {
+                            a: 123,
+                        },
+                    },
+                },
+            },
+        ]
+        tests.forEach((i) => {
+            test(i.description, () => {
+                const sut = new UnitTestFetch(
+                    i.fetchConfig,
+                    i.testResultBundle,
+                    i.beaconHandler,
+                )
+                sut.testSetup = () => Promise.resolve()
+                sut.testTearDown = () => {
+                    return Promise.resolve()
+                }
+                Object.defineProperties(sut, i.fetchObjectProperties)
+                asyncGetEntryMock.mockResolvedValueOnce(i.asyncGetEntryResponse)
+                sut.updateFetchTestResults = jest
+                    .fn()
+                    .mockResolvedValueOnce(undefined)
+                sut.onError = () => {
+                    return Promise.resolve()
+                }
+                return sut.execute().then((result) => {
+                    expect(result).toStrictEqual(i.expectedResult)
+                })
+            })
         })
     })
 })
