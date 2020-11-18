@@ -69,6 +69,7 @@ describe("Fetch", () => {
              */
             asyncGetEntryResponse?: SimpleObject
             fetchObjectProperties: PropertyDescriptorMap
+            expectSetTimeoutId: boolean
         }
 
         const DEFAULT_FETCH_CONFIG: FetchConfiguration = { type: "some type" }
@@ -102,6 +103,7 @@ describe("Fetch", () => {
                 {},
                 DEFAULT_FETCH_OBJECT_PROPERTIES,
             ),
+            expectSetTimeoutId: false,
         }
 
         const tests: Array<TestConfig> = [
@@ -126,6 +128,13 @@ describe("Fetch", () => {
                         },
                     },
                 ),
+            }),
+            Object.assign({}, DEFAULT_TEST_CONFIG, {
+                description: "Config includes 10 second timeout",
+                fetchConfig: Object.assign({}, DEFAULT_FETCH_CONFIG, {
+                    timeout: 10000,
+                }),
+                expectSetTimeoutId: true,
             }),
         ]
 
@@ -154,8 +163,14 @@ describe("Fetch", () => {
                 sut.onError = () => {
                     return Promise.resolve()
                 }
+                const setTimeoutId = jest.spyOn(sut, "setTimeoutId") //sut.setTimeoutId
                 return sut.execute().then((result) => {
                     expect(result).toStrictEqual(i.expectedResult)
+                    if (i.expectSetTimeoutId) {
+                        expect(setTimeoutId).toHaveBeenCalled()
+                    } else {
+                        expect(setTimeoutId).not.toHaveBeenCalled()
+                    }
                 })
             })
         })
