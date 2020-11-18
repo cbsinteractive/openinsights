@@ -17,11 +17,9 @@ beforeEach(() => {
 
 describe("Fetch", () => {
     describe("execute", () => {
-        type SomeConfiguration = FetchConfiguration
-        type SomeResultBundle = FetchTestResultBundle
         class UnitTestFetch extends Fetch<
-            SomeConfiguration,
-            SomeResultBundle,
+            FetchConfiguration,
+            FetchTestResultBundle,
             unknown,
             unknown
         > {
@@ -72,60 +70,65 @@ describe("Fetch", () => {
             asyncGetEntryResponse?: SimpleObject
             fetchObjectProperties: PropertyDescriptorMap
         }
+
         const DEFAULT_FETCH_CONFIG: FetchConfiguration = { type: "some type" }
+
+        const DEFAULT_FETCH_OBJECT_PROPERTIES: PropertyDescriptorMap = {
+            resourceURL: {
+                value: "some resource URL",
+            },
+            beaconURL: {
+                value: "some beacon URL",
+            },
+            beaconData: {
+                value: {
+                    foo: "bar",
+                },
+            },
+            _results: {
+                value: {
+                    a: 123,
+                },
+            },
+        }
+
+        const DEFAULT_TEST_CONFIG: TestConfig = {
+            description: "Successful fetch",
+            fetchConfig: Object.assign({}, DEFAULT_FETCH_CONFIG),
+            testResultBundle: {},
+            beaconHandler: new UnitTestBeaconHandler({ a: 0 }),
+            expectedResult: { a: 123 },
+            fetchObjectProperties: Object.assign(
+                {},
+                DEFAULT_FETCH_OBJECT_PROPERTIES,
+            ),
+        }
+
         const tests: Array<TestConfig> = [
-            {
-                description: "Successful fetch",
-                fetchConfig: Object.assign({}, DEFAULT_FETCH_CONFIG),
-                testResultBundle: {},
-                beaconHandler: new UnitTestBeaconHandler({ a: 0 }),
-                expectedResult: { a: 123 },
+            Object.assign({}, DEFAULT_TEST_CONFIG, {
                 asyncGetEntryResponse: { foo: "bar" },
-                fetchObjectProperties: {
-                    resourceURL: {
-                        value: "some resource URL",
-                    },
-                    beaconURL: {
-                        value: "some beacon URL",
-                    },
-                    beaconData: {
-                        value: {
-                            foo: "bar",
-                        },
-                    },
-                    _results: {
-                        value: {
-                            a: 123,
-                        },
-                    },
-                },
-            },
-            {
+            }),
+            Object.assign({}, DEFAULT_TEST_CONFIG, {
                 description: "Fail to find Resource Timing entry",
-                fetchConfig: Object.assign({}, DEFAULT_FETCH_CONFIG),
-                testResultBundle: {},
-                beaconHandler: new UnitTestBeaconHandler({ a: 0 }),
-                expectedResult: { a: 123 },
-                fetchObjectProperties: {
-                    resourceURL: {
-                        value: "some resource URL",
-                    },
-                    beaconURL: {
-                        value: "some beacon URL",
-                    },
-                    beaconData: {
-                        value: {
-                            foo: "bar",
+            }),
+            Object.assign({}, DEFAULT_TEST_CONFIG, {
+                description: "Has custom request headers",
+                asyncGetEntryResponse: { foo: "bar" },
+                fetchObjectProperties: Object.assign(
+                    {},
+                    DEFAULT_FETCH_OBJECT_PROPERTIES,
+                    {
+                        resourceRequestHeaders: {
+                            value: {
+                                a: "foo",
+                                b: "bar",
+                            },
                         },
                     },
-                    _results: {
-                        value: {
-                            a: 123,
-                        },
-                    },
-                },
-            },
+                ),
+            }),
         ]
+
         tests.forEach((i) => {
             test(i.description, () => {
                 const sut = new UnitTestFetch(
