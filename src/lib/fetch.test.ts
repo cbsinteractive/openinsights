@@ -163,7 +163,7 @@ describe("Fetch", () => {
                 sut.onError = () => {
                     return Promise.resolve()
                 }
-                const setTimeoutId = jest.spyOn(sut, "setTimeoutId") //sut.setTimeoutId
+                const setTimeoutId = jest.spyOn(sut, "setTimeoutId")
                 return sut.execute().then((result) => {
                     expect(result).toStrictEqual(i.expectedResult)
                     if (i.expectSetTimeoutId) {
