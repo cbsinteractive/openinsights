@@ -1,6 +1,6 @@
 import fetchMock from "jest-fetch-mock"
 import { ResourceTimingEntry, SimpleObject } from "../@types"
-import { makeDescription } from "../testUtil"
+import { makeDescription, TestCaseConfig } from "../testUtil"
 import { BeaconHandler } from "../util/beaconHandler"
 import { Fetch, FetchConfiguration, FetchTestResultBundle } from "./fetch"
 import { asyncGetEntry } from "./resourceTiming"
@@ -18,57 +18,61 @@ beforeEach(() => {
 })
 
 describe("Fetch", () => {
+    class UnitTestFetch extends Fetch<
+        FetchConfiguration,
+        FetchTestResultBundle,
+        unknown,
+        unknown
+    > {
+        get resourceURL(): string {
+            throw new Error("Method not mocked.")
+        }
+        updateFetchTestResults(): Promise<void> {
+            throw new Error("Method not mocked.")
+        }
+        onError(): Promise<void> {
+            throw new Error("Method not mocked.")
+        }
+        get beaconData(): unknown {
+            throw new Error("Method not mocked.")
+        }
+        get beaconURL(): string {
+            throw new Error("Method not mocked.")
+        }
+        testSetup(): Promise<void> {
+            throw new Error("Method not mocked.")
+        }
+        onSendBeaconResolved(): void {
+            // Do nothing
+        }
+        onSendBeaconRejected(): void {
+            // Do nothing
+        }
+    }
+
+    class UnitTestBeaconHandler extends BeaconHandler<unknown> {
+        constructor(private _expectedResult: unknown) {
+            super()
+        }
+        makeSendResult(): unknown {
+            return this._expectedResult
+        }
+    }
+
+    interface FetchTestConfig extends TestCaseConfig {
+        fetchConfig: FetchConfiguration
+        testResultBundle: FetchTestResultBundle
+        beaconHandler: UnitTestBeaconHandler
+    }
+
+    const DEFAULT_FETCH_CONFIG: FetchConfiguration = { type: "some type" }
+
     describe("execute", () => {
-        class UnitTestFetch extends Fetch<
-            FetchConfiguration,
-            FetchTestResultBundle,
-            unknown,
-            unknown
-        > {
-            get resourceURL(): string {
-                throw new Error("Method not mocked.")
-            }
-            updateFetchTestResults(): Promise<void> {
-                throw new Error("Method not mocked.")
-            }
-            onError(): Promise<void> {
-                throw new Error("Method not mocked.")
-            }
-            get beaconData(): unknown {
-                throw new Error("Method not mocked.")
-            }
-            get beaconURL(): string {
-                throw new Error("Method not mocked.")
-            }
-            testSetup(): Promise<void> {
-                throw new Error("Method not mocked.")
-            }
-            onSendBeaconResolved(): void {
-                // Do nothing
-            }
-            onSendBeaconRejected(): void {
-                // Do nothing
-            }
-        }
-
-        class UnitTestBeaconHandler extends BeaconHandler<unknown> {
-            constructor(private _expectedResult: unknown) {
-                super()
-            }
-            makeSendResult(): unknown {
-                return this._expectedResult
-            }
-        }
-
         interface SetTimeoutOptions {
             timeout: number
         }
 
-        interface TestConfig {
-            description: string
-            fetchConfig: FetchConfiguration
-            testResultBundle: FetchTestResultBundle
-            beaconHandler: UnitTestBeaconHandler
+        interface TestConfig extends FetchTestConfig {
             expectedResult: Record<string, unknown>
             /**
              * If missing, then the asyncGetEntry Promise will be rejected
@@ -78,8 +82,6 @@ describe("Fetch", () => {
             setTimeoutOptions?: SetTimeoutOptions
             preventClearTimeout: boolean
         }
-
-        const DEFAULT_FETCH_CONFIG: FetchConfiguration = { type: "some type" }
 
         const DEFAULT_FETCH_OBJECT_PROPERTIES: PropertyDescriptorMap = {
             resourceURL: {
@@ -203,6 +205,37 @@ describe("Fetch", () => {
                 } else {
                     expect(setTimeoutId).not.toHaveBeenCalled()
                 }
+            })
+        })
+    })
+    describe("makeValidateResourceTimingEntryFunc", () => {
+        interface TestConfig extends FetchTestConfig {
+            entry: SimpleObject
+            expectedResult: boolean
+        }
+        const tests: Array<TestConfig> = [
+            {
+                description: "Default",
+                fetchConfig: Object.assign({}, DEFAULT_FETCH_CONFIG),
+                testResultBundle: {},
+                beaconHandler: new UnitTestBeaconHandler({ a: 0 }),
+                entry: {
+                    requestStart: 1,
+                    connectStart: 2,
+                    connectEnd: 3,
+                },
+                expectedResult: true,
+            },
+        ]
+        tests.forEach((i) => {
+            test(i.description, () => {
+                const sut = new UnitTestFetch(
+                    i.fetchConfig,
+                    i.testResultBundle,
+                    i.beaconHandler,
+                )
+                const callback = sut.makeValidateResourceTimingEntryFunc()
+                expect(callback(i.entry)).toBe(i.expectedResult)
             })
         })
     })
