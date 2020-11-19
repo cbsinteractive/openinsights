@@ -155,9 +155,6 @@ export abstract class Fetch<
         const args = this.config.timeout
             ? { signal: this._abortController.signal }
             : {}
-        const result = fetch(request, args).finally(() => {
-            this.clearTimeout()
-        })
         // Initiate a timeout to let us abort the request if it takes too long
         if (this.config.timeout) {
             this.setTimeoutId(
@@ -167,6 +164,8 @@ export abstract class Fetch<
                 }, this.config.timeout),
             )
         }
-        return result
+        return fetch(request, args).finally(() => {
+            this.clearTimeout()
+        })
     }
 }
