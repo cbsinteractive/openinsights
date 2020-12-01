@@ -1,4 +1,4 @@
-import { ClientSettings, SessionResult, Executable } from "./@types"
+import { ClientSettings, Executable, SessionResult } from "./@types"
 import defaultSessionProcessFunc from "./util/defaultSessionProcessFunc"
 import whenReady from "./util/loadWhenDocumentReady"
 
@@ -55,6 +55,10 @@ function start(settings: ClientSettings): Promise<SessionResult> {
         activeProviders.map((provider) => provider.fetchSessionConfig()),
     )
         .then((settled) => {
+            // TODO: Note that if any provider's fetchSessionConfig Promise
+            // rejects, the reason is silently ignored. We may want to
+            // consider preserving this and including it in the final resolved
+            // value.
             const executables: Executable[] = []
             settled.forEach((result, idx) => {
                 if (result.status === "fulfilled") {
