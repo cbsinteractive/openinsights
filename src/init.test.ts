@@ -1,7 +1,7 @@
 import { Executable } from "./@types"
 import init from "./init"
 import ProviderBase from "./lib/providerBase"
-import { TestCaseConfig } from "./testUtil"
+import { makeDescription, TestCaseConfig } from "./testUtil"
 import ClientSettingsBuilder from "./util/clientSettingsBuilder"
 
 /**
@@ -14,9 +14,8 @@ describe("init and ProviderBase", () => {
     interface UnitTestSessionConfig {
         foo: number
     }
-    type FetchSessionConfigResult = string | UnitTestSessionConfig
     interface TestConfig extends TestCaseConfig {
-        sessionConfigResult: FetchSessionConfigResult
+        providers: Array<UnitTestProvider>
         expectedResult: unknown
     }
     class UnitTestProvider extends ProviderBase<UnitTestSessionConfig> {
@@ -32,31 +31,29 @@ describe("init and ProviderBase", () => {
     }
     const tests: Array<TestConfig> = [
         {
-            description: "fetchSessionConfig rejects",
-            sessionConfigResult: "some error",
+            description: makeDescription(
+                "single provider",
+                "fetchSessionConfig rejects",
+            ),
+            providers: [
+                (() => {
+                    const result = new UnitTestProvider()
+                    result.fetchSessionConfig = jest
+                        .fn()
+                        .mockRejectedValueOnce("some error")
+                    return result
+                })(),
+            ],
             expectedResult: { testResults: [] },
         },
     ]
     tests.forEach((i) => {
         test(i.description, () => {
-            const provider = new UnitTestProvider()
-            if (typeof i.sessionConfigResult == "string") {
-                provider.fetchSessionConfig = jest
-                    .fn()
-                    .mockRejectedValueOnce(i.sessionConfigResult)
-            } else {
-                provider.fetchSessionConfig = jest
-                    .fn()
-                    .mockResolvedValueOnce(i.sessionConfigResult)
-            }
             const settingsBuilder = new ClientSettingsBuilder()
-            settingsBuilder.addProvider(provider)
+            i.providers.forEach((i) => settingsBuilder.addProvider(i))
             return init(settingsBuilder.toSettings())
                 .then((result) => {
                     expect(result).toStrictEqual(i.expectedResult)
-                })
-                .catch((reason) => {
-                    console.log(`Reason: ${reason}`)
                 })
         })
     })
