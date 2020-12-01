@@ -50,11 +50,13 @@ describe("init and ProviderBase", () => {
     tests.forEach((i) => {
         test(i.description, () => {
             const settingsBuilder = new ClientSettingsBuilder()
-            i.providers.forEach((i) => settingsBuilder.addProvider(i))
-            return init(settingsBuilder.toSettings())
-                .then((result) => {
-                    expect(result).toStrictEqual(i.expectedResult)
-                })
+            i.providers.forEach((i) => {
+                expect(i.name).toBe("Unit Testing")
+                settingsBuilder.addProvider(i)
+            })
+            return init(settingsBuilder.toSettings()).then((result) => {
+                expect(result).toStrictEqual(i.expectedResult)
+            })
         })
     })
 })
