@@ -46,6 +46,31 @@ describe("init and ProviderBase", () => {
             ],
             expectedResult: { testResults: [] },
         },
+        {
+            description: makeDescription(
+                "single provider",
+                "expandTasks encounters a problem",
+            ),
+            providers: [
+                (() => {
+                    const result = new UnitTestProvider()
+                    const config: UnitTestSessionConfig = {
+                        foo: 123,
+                    }
+                    result.fetchSessionConfig = jest
+                        .fn()
+                        .mockResolvedValueOnce(config)
+                    result.expandTasks = jest.fn(() => {
+                        throw new Error("some error")
+                    })
+                    return result
+                })(),
+            ],
+            expectedResult: {
+                initError: new Error("some error"),
+                testResults: [],
+            },
+        },
     ]
     tests.forEach((i) => {
         test(i.description, () => {
