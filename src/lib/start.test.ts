@@ -128,6 +128,51 @@ describe("start", () => {
                 )
             },
         },
+        {
+            description: makeDescription(
+                "single provider",
+                "has tasks",
+                "one task encounters an error",
+            ),
+            settings: {
+                providers: [
+                    (() => {
+                        const provider = new UnitTestProvider()
+                        provider.fetchSessionConfig = jest
+                            .fn()
+                            .mockReturnValueOnce("some session config")
+                        provider.expandTasks = jest.fn().mockReturnValueOnce([
+                            (() => {
+                                const task = new UnitTestTask()
+                                task.execute = jest
+                                    .fn()
+                                    .mockResolvedValueOnce(123)
+                                return task
+                            })(),
+                            (() => {
+                                const task = new UnitTestTask()
+                                task.execute = jest
+                                    .fn()
+                                    .mockRejectedValueOnce(
+                                        "some task execute error",
+                                    )
+                                return task
+                            })(),
+                        ])
+                        return provider
+                    })(),
+                ],
+            },
+            result: {
+                testResults: [123],
+            },
+            validateProviders: (providers: Array<Provider>) => {
+                expect(providers.length).toBe(1)
+                expect(providers[0].sessionConfig).toStrictEqual(
+                    "some session config",
+                )
+            },
+        },
     ]
     tests.forEach((i) => {
         test(i.description, () => {
