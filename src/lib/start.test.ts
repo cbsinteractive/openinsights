@@ -1,9 +1,9 @@
-import { ClientSettings, Executable, SessionResult } from "../@types"
+import { ClientSettings, Executable, Provider, SessionResult } from "../@types"
 import { makeDescription, TestCaseConfig } from "../testUtil"
 import ProviderBase from "./providerBase"
 import { start, startLater } from "./start"
 
-type UnitTestConfig = number
+type UnitTestConfig = string
 
 class UnitTestProvider extends ProviderBase<UnitTestConfig> {
     fetchSessionConfig(): Promise<UnitTestConfig> {
@@ -17,9 +17,16 @@ class UnitTestProvider extends ProviderBase<UnitTestConfig> {
     }
 }
 
+class UnitTestTask implements Executable {
+    execute(): Promise<unknown> {
+        throw new Error("Method not implemented.")
+    }
+}
+
 interface TestConfig extends TestCaseConfig {
     settings: ClientSettings
     result: SessionResult
+    validateProviders: (providers: Array<Provider>) => void
 }
 
 describe("start", () => {
@@ -36,6 +43,9 @@ describe("start", () => {
                 ],
             },
             result: { testResults: [] },
+            validateProviders: (providers: Array<Provider>) => {
+                expect(providers.length).toBe(1)
+            },
         },
         {
             description: makeDescription(
@@ -56,6 +66,9 @@ describe("start", () => {
                 ],
             },
             result: { testResults: [] },
+            validateProviders: (providers: Array<Provider>) => {
+                expect(providers.length).toBe(1)
+            },
         },
         {
             description: makeDescription(
@@ -79,12 +92,48 @@ describe("start", () => {
                 ],
             },
             result: { initError: new Error("some error"), testResults: [] },
+            validateProviders: (providers: Array<Provider>) => {
+                expect(providers.length).toBe(1)
+            },
+        },
+        {
+            description: makeDescription("single provider", "has tasks"),
+            settings: {
+                providers: [
+                    (() => {
+                        const provider = new UnitTestProvider()
+                        provider.fetchSessionConfig = jest
+                            .fn()
+                            .mockReturnValueOnce("some session config")
+                        provider.expandTasks = jest.fn().mockReturnValueOnce([
+                            (() => {
+                                const task = new UnitTestTask()
+                                task.execute = jest
+                                    .fn()
+                                    .mockResolvedValueOnce(123)
+                                return task
+                            })(),
+                        ])
+                        return provider
+                    })(),
+                ],
+            },
+            result: {
+                testResults: [123],
+            },
+            validateProviders: (providers: Array<Provider>) => {
+                expect(providers.length).toBe(1)
+                expect(providers[0].sessionConfig).toStrictEqual(
+                    "some session config",
+                )
+            },
         },
     ]
     tests.forEach((i) => {
         test(i.description, () => {
             return start(i.settings).then((result) => {
                 expect(result).toStrictEqual(i.result)
+                i.validateProviders(i.settings.providers)
             })
         })
     })
@@ -111,6 +160,9 @@ describe("startLater", () => {
                 ],
             },
             result: { testResults: [] },
+            validateProviders: (providers: Array<Provider>) => {
+                expect(providers.length).toBe(1)
+            },
         },
     ]
     beforeEach(() => {
@@ -120,6 +172,7 @@ describe("startLater", () => {
         test(i.description, () => {
             const promise = startLater(i.delay, i.settings).then((result) => {
                 expect(result).toStrictEqual(i.result)
+                i.validateProviders(i.settings.providers)
             })
             jest.runAllTimers()
             return promise
