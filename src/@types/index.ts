@@ -55,6 +55,11 @@ export type ClientInfo = SimpleObject
  */
 export interface SessionResult {
     /**
+     * An optional Error object describing a problem that occurred during
+     * session initialization.
+     */
+    initError?: Error
+    /**
      * An array containing the test result bundles for each individual test
      * performed.
      */
