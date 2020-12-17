@@ -38,7 +38,8 @@ export abstract class BeaconHandler<R> {
         const init: RequestInit = {
             method: "POST",
             body: data,
-            keepalive: true,
+            // keepalive causes problems in some browsers
+            // keepalive: true,
         }
         if (headers) {
             init.headers = new Headers(headers)
