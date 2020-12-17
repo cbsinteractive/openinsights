@@ -35,7 +35,6 @@ export abstract class BeaconHandler<R> {
             // duplicate reporting?
             return Promise.reject(new Error("navigator.sendBeacon failed"))
         }
-        debugger
         const init: RequestInit = {
             method: "POST",
             body: data,
