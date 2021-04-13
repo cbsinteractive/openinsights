@@ -113,6 +113,7 @@ export abstract class Fetch<
                 },
             )
             .catch((reason) => {
+                console.log(`Error at ${new Date().toISOString()}: ${reason}`)
                 return this.onError(reason)
             })
     }
@@ -157,15 +158,42 @@ export abstract class Fetch<
             : {}
         // Initiate a timeout to let us abort the request if it takes too long
         if (this.config.timeout) {
+            console.log(`Setting timeout to ${this.config.timeout}`)
             this.setTimeoutId(
                 window.setTimeout(() => {
+                    console.log(`Aborting at ${new Date().toISOString()}`)
                     this._abortController.abort()
                     this.testResults.timeoutTriggered = true
                 }, this.config.timeout),
             )
         }
-        return fetch(request, args).finally(() => {
-            this.clearTimeout()
-        })
+        const fetchBegin = new Date()
+        let responseBegin: Date
+        console.log(`Fetch began at ${fetchBegin.toISOString()}`)
+        let savedResponse: Response
+        return fetch(request, args)
+            .then((resp) => {
+                savedResponse = resp
+                responseBegin = new Date()
+                console.log(`Response began at: ${responseBegin.toISOString()}`)
+                const diff =
+                    (responseBegin.getTime() - fetchBegin.getTime()) / 1000
+                console.log(`Interval from fetch to response: ${diff} seconds`)
+                if (!resp.ok) {
+                    throw new Error(
+                        `Network response status not okay: ${resp.status}`,
+                    )
+                }
+                return resp.blob()
+            })
+            .then((blob) => {
+                this.clearTimeout()
+                const blobEnd = new Date()
+                console.log(`Blob loaded at ${blobEnd.toISOString()} (timeout cleared)`)
+                const diff =
+                    (blobEnd.getTime() - responseBegin.getTime()) / 1000
+                console.log(`Interval from response to blob complete: ${diff} seconds`)
+                return savedResponse
+            })
     }
 }
