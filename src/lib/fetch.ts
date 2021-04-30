@@ -208,7 +208,7 @@ export abstract class Fetch<
                 }
                 return resp.blob()
             })
-            .then((blob) => {
+            .then(() => {
                 this.clearTimeout()
                 this._blobCompletedAt = this._abortTimeoutClearedAt = new Date()
                 Fetch.outputEventTimeElapsedMessage(
@@ -239,7 +239,7 @@ export abstract class Fetch<
         }
         if (startedAt != null) {
             const diffInMs = endedAt.getTime() - startedAt.getTime()
-            console.log(`${intervalName} after ${diffInMs} ms${addendum}`)
+            // console.log(`${intervalName} after ${diffInMs} ms${addendum}`)
         }
     }
 }
