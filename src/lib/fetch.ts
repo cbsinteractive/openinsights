@@ -56,6 +56,8 @@ export abstract class Fetch<
     private _errorCaughtAt: NullableDate = null
     private _fetchAbortedAt: NullableDate = null
     private _fetchCompletedAt: NullableDate = null
+    private _blobBeganAt: NullableDate = null
+    private _blobCompletedAt: NullableDate = null
 
     constructor(config: C, testResult: R, beaconHandler: BeaconHandler<SBR>) {
         super(config, testResult, beaconHandler)
@@ -189,15 +191,38 @@ export abstract class Fetch<
             )
         }
         this._fetchStartedAt = new Date()
-        return fetch(request, args).finally(() => {
-            this.clearTimeout()
-            this._abortTimeoutClearedAt = new Date()
-            Fetch.outputEventTimeElapsedMessage(
-                "Abort timeout cleared",
-                this._fetchStartedAt,
-                this._abortTimeoutClearedAt,
-            )
-        })
+        let savedResponse: Response
+        return fetch(request, args)
+            .then((resp) => {
+                savedResponse = resp
+                this._blobBeganAt = new Date()
+                Fetch.outputEventTimeElapsedMessage(
+                    "Blob began",
+                    this._fetchStartedAt,
+                    this._blobBeganAt,
+                )
+                if (!resp.ok) {
+                    throw new Error(
+                        `Network response status not okay: ${resp.status}`,
+                    )
+                }
+                return resp.blob()
+            })
+            .then((blob) => {
+                this.clearTimeout()
+                this._blobCompletedAt = this._abortTimeoutClearedAt = new Date()
+                Fetch.outputEventTimeElapsedMessage(
+                    "Abort timeout cleared",
+                    this._fetchStartedAt,
+                    this._abortTimeoutClearedAt,
+                )
+                Fetch.outputEventTimeElapsedMessage(
+                    "Blob duration",
+                    this._blobBeganAt,
+                    this._blobCompletedAt,
+                )
+                return savedResponse
+            })
     }
 
     /* eslint-disable @typescript-eslint/no-unused-vars */
