@@ -134,6 +134,7 @@ export abstract class Fetch<
                     "Error caught",
                     this._fetchStartedAt,
                     this._errorCaughtAt,
+                    reason,
                 )
                 return this.onError(reason)
             })
@@ -204,10 +205,16 @@ export abstract class Fetch<
         intervalName: string,
         startedAt: NullableDate,
         endedAt: Date,
+        addendum?: string,
     ): void {
+        if (addendum) {
+            addendum = `; ${addendum}`
+        } else {
+            addendum = ""
+        }
         if (startedAt != null) {
             const diffInMs = endedAt.getTime() - startedAt.getTime()
-            console.log(`${intervalName} after ${diffInMs} ms`)
+            console.log(`${intervalName} after ${diffInMs} ms${addendum}`)
         }
     }
 }
