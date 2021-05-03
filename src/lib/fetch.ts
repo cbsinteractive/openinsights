@@ -1,4 +1,4 @@
-import { ResourceTimingEntry } from "../@types"
+import { NullableDate, ResourceTimingEntry } from "../@types"
 import { BeaconHandler } from "../util/beaconHandler"
 import { asyncGetEntry } from "./resourceTiming"
 import { Test, TestConfiguration } from "./test"
@@ -46,6 +46,18 @@ export abstract class Fetch<
      * complete in a timely manner.
      */
     private _abortController: AbortController = new AbortController()
+
+    /**
+     * Diagnostic timestamps to help grok issues related to the asynchronous
+     * nature of this workflow.
+     */
+    private _fetchStartedAt: NullableDate = null
+    private _abortTimeoutClearedAt: NullableDate = null
+    private _errorCaughtAt: NullableDate = null
+    private _fetchAbortedAt: NullableDate = null
+    private _fetchCompletedAt: NullableDate = null
+    private _blobBeganAt: NullableDate = null
+    private _blobCompletedAt: NullableDate = null
 
     constructor(config: C, testResult: R, beaconHandler: BeaconHandler<SBR>) {
         super(config, testResult, beaconHandler)
@@ -109,10 +121,23 @@ export abstract class Fetch<
                     // although the HTTP status may indicate an error condition.
                     // Providers should be aware of this and check `response.status`
                     // if it matters to them.
+                    this._fetchCompletedAt = new Date()
+                    Fetch.outputEventTimeElapsedMessage(
+                        "Fetch completed",
+                        this._fetchStartedAt,
+                        this._fetchCompletedAt,
+                    )
                     return this.updateFetchTestResults(response, entry)
                 },
             )
             .catch((reason) => {
+                this._errorCaughtAt = new Date()
+                Fetch.outputEventTimeElapsedMessage(
+                    "Error caught",
+                    this._fetchStartedAt,
+                    this._errorCaughtAt,
+                    reason,
+                )
                 return this.onError(reason)
             })
     }
@@ -159,13 +184,62 @@ export abstract class Fetch<
         if (this.config.timeout) {
             this.setTimeoutId(
                 window.setTimeout(() => {
+                    this._fetchAbortedAt = new Date()
                     this._abortController.abort()
                     this.testResults.timeoutTriggered = true
                 }, this.config.timeout),
             )
         }
-        return fetch(request, args).finally(() => {
-            this.clearTimeout()
-        })
+        this._fetchStartedAt = new Date()
+        let savedResponse: Response
+        return fetch(request, args)
+            .then((resp) => {
+                savedResponse = resp
+                this._blobBeganAt = new Date()
+                Fetch.outputEventTimeElapsedMessage(
+                    "Blob began",
+                    this._fetchStartedAt,
+                    this._blobBeganAt,
+                )
+                if (!resp.ok) {
+                    throw new Error(
+                        `Network response status not okay: ${resp.status}`,
+                    )
+                }
+                return resp.blob()
+            })
+            .then(() => {
+                this.clearTimeout()
+                this._blobCompletedAt = this._abortTimeoutClearedAt = new Date()
+                Fetch.outputEventTimeElapsedMessage(
+                    "Abort timeout cleared",
+                    this._fetchStartedAt,
+                    this._abortTimeoutClearedAt,
+                )
+                Fetch.outputEventTimeElapsedMessage(
+                    "Blob duration",
+                    this._blobBeganAt,
+                    this._blobCompletedAt,
+                )
+                return savedResponse
+            })
+    }
+
+    /* eslint-disable @typescript-eslint/no-unused-vars */
+    static outputEventTimeElapsedMessage(
+        intervalName: string,
+        startedAt: NullableDate,
+        endedAt: Date,
+        addendum?: string,
+    ): void {
+        if (addendum) {
+            addendum = `; ${addendum}`
+        } else {
+            addendum = ""
+        }
+        if (startedAt != null) {
+            const diffInMs = endedAt.getTime() - startedAt.getTime()
+            // console.log(`${intervalName} after ${diffInMs} ms${addendum}`)
+        }
     }
 }

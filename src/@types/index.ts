@@ -14,6 +14,8 @@ export interface SimpleObject {
         | undefined
 }
 
+export type NullableDate = Date | null
+
 /**
  * An interface representing the result of a test's setup activity.
  */
