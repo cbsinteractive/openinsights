@@ -107,7 +107,7 @@ export abstract class Fetch<
      */
     test(): Promise<void> {
         const defaultTimeout = 5000
-        return Promise.all<Response, ResourceTimingEntry>([
+        return Promise.all([
             this.fetchObject(),
             asyncGetEntry(
                 this.resourceURL,
