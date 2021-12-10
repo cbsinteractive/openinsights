@@ -30,29 +30,33 @@ export function start(settings: ClientSettings): Promise<SessionResult> {
     if (!activeProviders.length) {
         return Promise.resolve({ testResults: [] })
     }
-    return Promise.allSettled(
-        activeProviders.map((provider) => provider.fetchSessionConfig()),
-    )
-        .then((settled) => {
-            // TODO: Note that if any provider's fetchSessionConfig Promise
-            // rejects, the reason is silently ignored. We may want to
-            // consider preserving this and including it in the final resolved
-            // value.
-            const executables: Executable[] = []
-            settled.forEach((result, idx) => {
-                if (result.status === "fulfilled") {
-                    const provider = activeProviders[idx]
-                    provider.setSessionConfig(result.value)
-                    executables.push(...provider.expandTasks())
-                }
-            })
-            const process = settings.sessionProcess || defaultSessionProcessFunc
-            return process(executables)
+    // We can't use Promise.allSettled() below due to browser support.
+    // Therefore, we implement it manually via p.then().catch() to collect all
+    // results regardless of their resolution status. I.e. we polyfill.
+    return Promise.all(
+        activeProviders
+            .map((provider) => provider.fetchSessionConfig())
+            .map((p) =>
+                p
+                    .then((value) => ({
+                        status: "fulfilled",
+                        value,
+                    }))
+                    .catch((reason) => ({
+                        status: "rejected",
+                        reason,
+                    })),
+            ),
+    ).then((settled) => {
+        const executables: Executable[] = []
+        settled.forEach((result, idx) => {
+            if (result.status === "fulfilled" && "value" in result) {
+                const provider = activeProviders[idx]
+                provider.setSessionConfig(result.value)
+                executables.push(...provider.expandTasks())
+            }
         })
-        .catch((reason) => {
-            return Promise.resolve({
-                initError: reason,
-                testResults: [],
-            })
-        })
+        const process = settings.sessionProcess || defaultSessionProcessFunc
+        return process(executables)
+    })
 }

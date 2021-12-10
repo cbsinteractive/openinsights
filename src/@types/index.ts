@@ -1,3 +1,5 @@
+export { KnownErrors } from "../lib/errors"
+
 /**
  * An interface representing simple objects mapping strings to basic primative
  * types.

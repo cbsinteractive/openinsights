@@ -81,7 +81,7 @@ describe("start", () => {
                         const provider = new UnitTestProvider()
                         provider.fetchSessionConfig = jest
                             .fn()
-                            .mockReturnValueOnce("some session config")
+                            .mockResolvedValue("some session config")
                         provider.expandTasks = jest
                             .fn()
                             .mockImplementationOnce(() => {
@@ -104,7 +104,7 @@ describe("start", () => {
                         const provider = new UnitTestProvider()
                         provider.fetchSessionConfig = jest
                             .fn()
-                            .mockReturnValueOnce("some session config")
+                            .mockResolvedValue("some session config")
                         provider.expandTasks = jest.fn().mockReturnValueOnce([
                             (() => {
                                 const task = new UnitTestTask()
@@ -140,7 +140,7 @@ describe("start", () => {
                         const provider = new UnitTestProvider()
                         provider.fetchSessionConfig = jest
                             .fn()
-                            .mockReturnValueOnce("some session config")
+                            .mockResolvedValue("some session config")
                         provider.expandTasks = jest.fn().mockReturnValueOnce([
                             (() => {
                                 const task = new UnitTestTask()
@@ -176,10 +176,14 @@ describe("start", () => {
     ]
     tests.forEach((i) => {
         test(i.description, () => {
-            return start(i.settings).then((result) => {
-                expect(result).toStrictEqual(i.result)
-                i.validateProviders(i.settings.providers)
-            })
+            return start(i.settings)
+                .then((result) => {
+                    expect(result).toStrictEqual(i.result)
+                    i.validateProviders(i.settings.providers)
+                })
+                .catch((reason) => {
+                    expect(reason).toEqual(i.result.initError)
+                })
         })
     })
 })

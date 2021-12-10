@@ -1,11 +1,7 @@
-# Open Insights (working title) - CBSi Patched Version
+# Open Insights
 
-:warning: *This repository is a fork of the upstream Open Insights project and tracks
-patches added by CBSi needed for the Doppler.js client.
-See [CBSI-PATCHES.md](./CBSI-PATCHES.md) for more information.*
+Open Insights is a framework for constructing browser-based RUM clients.
 
-Based on the original Fastly [Insights.js](https://github.com/fastly/insights.js)
-client, Open Insights is a framework for constructing browser-based RUM clients.
 It allows a site owner to construct their own client using one or more "providers".
 The client is then self-hosted and deployed alongside the rest of their JavaScript
 resources.
