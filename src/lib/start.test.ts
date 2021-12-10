@@ -1,6 +1,6 @@
 import { ClientSettings, Executable, Provider, SessionResult } from "../@types"
 import { makeDescription, TestCaseConfig } from "../testUtil"
-import ProviderBase from "./providerBase"
+import { ProviderBase } from "./providerBase"
 import { start, startLater } from "./start"
 
 type UnitTestConfig = string

@@ -1,6 +1,6 @@
 import { Executable, SessionResult } from "./@types"
 import init from "./init"
-import ProviderBase from "./lib/providerBase"
+import { ProviderBase } from "./lib/providerBase"
 import { start, startLater } from "./lib/start"
 import { makeDescription, TestCaseConfig } from "./testUtil"
 import ClientSettingsBuilder from "./util/clientSettingsBuilder"

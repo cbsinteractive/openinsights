@@ -10,7 +10,7 @@ import { KnownErrors } from "./errors"
  * @typeParam SC The type to be used for the internal session configuration.
  * @typeParam TC The type to be used for the test configuration.
  */
-export default abstract class ProviderBase<SC> implements Provider {
+export abstract class ProviderBase<SC> implements Provider {
     /**
      * @param _name A provider-defined name.
      */

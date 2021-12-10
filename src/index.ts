@@ -40,8 +40,11 @@ export { default as init } from "./init"
 export { default as ClientSettingsBuilder } from "./util/clientSettingsBuilder"
 
 // Libs
-export { Fetch } from "./lib/fetch"
+export { Fetch, FetchConfiguration, FetchTestResultBundle } from "./lib/fetch"
 export { default as getNetworkInformation } from "./lib/getNetworkInformation"
-export { default as Provider } from "./lib/providerBase"
+export { ProviderBase } from "./lib/providerBase"
 export * from "./lib/resourceTiming"
 export { Test } from "./lib/test"
+export { getClientInfo } from "./util/clientInfo"
+export { BeaconHandler } from "./util/beaconHandler"
+export { GetBeaconHandler } from "./util/getBeaconHandler"
