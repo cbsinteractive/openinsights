@@ -39,7 +39,7 @@ export abstract class Fetch<
     C extends FetchConfiguration,
     R extends FetchTestResultBundle,
     D,
-    SBR
+    SBR,
 > extends Test<C, R, D, SBR> {
     /**
      * An AbortController instance used to abort fetch requests that do not
@@ -115,21 +115,19 @@ export abstract class Fetch<
                 this.makeValidateResourceTimingEntryFunc(),
             ),
         ])
-            .then(
-                ([response, entry]): Promise<void> => {
-                    // WARNING: If we get here, then the fetch technically completed,
-                    // although the HTTP status may indicate an error condition.
-                    // Providers should be aware of this and check `response.status`
-                    // if it matters to them.
-                    this._fetchCompletedAt = new Date()
-                    Fetch.outputEventTimeElapsedMessage(
-                        "Fetch completed",
-                        this._fetchStartedAt,
-                        this._fetchCompletedAt,
-                    )
-                    return this.updateFetchTestResults(response, entry)
-                },
-            )
+            .then(([response, entry]): Promise<void> => {
+                // WARNING: If we get here, then the fetch technically completed,
+                // although the HTTP status may indicate an error condition.
+                // Providers should be aware of this and check `response.status`
+                // if it matters to them.
+                this._fetchCompletedAt = new Date()
+                Fetch.outputEventTimeElapsedMessage(
+                    "Fetch completed",
+                    this._fetchStartedAt,
+                    this._fetchCompletedAt,
+                )
+                return this.updateFetchTestResults(response, entry)
+            })
             .catch((reason) => {
                 this._errorCaughtAt = new Date()
                 Fetch.outputEventTimeElapsedMessage(

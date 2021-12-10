@@ -21,7 +21,8 @@ export interface TestConfiguration {
  * @typeParam SBR The type to be used for the send beacon result.
  */
 export abstract class Test<C extends TestConfiguration, R, D, SBR>
-    implements Executable {
+    implements Executable
+{
     /**
      * Id of the fetch timeout. This is used to cancel the timeout if the
      * test succeeds or fails with an error before the timeout elapses.
