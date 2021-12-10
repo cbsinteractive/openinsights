@@ -1,5 +1,5 @@
 {
-  "name": "@openinsights/openinsights",
+  "name": "@tacoherd/openinsights",
   "version": "0.2.1",
   "main": "dist/index.js",
   "module": "dist/esm/index.js",
@@ -10,7 +10,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "repository": "git@github.com:openinsights/openinsights.git",
+  "repository": "git@github.com:cbsinteractive/openinsights.git",
   "license": "MIT",
   "scripts": {
     "build": "tsc --build",
