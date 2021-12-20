@@ -100,13 +100,14 @@ export abstract class Test<C extends TestConfiguration, R, D, SBR>
                 return this.test()
             })
             .then(() => {
-                this.sendBeacon()
-                    .then((result) => {
-                        this.onSendBeaconResolved(result)
-                    })
-                    .catch((reason) => {
-                        this.onSendBeaconRejected(reason)
-                    })
+                this.shouldSendBeacon() &&
+                    this.sendBeacon()
+                        .then((result) => {
+                            this.onSendBeaconResolved(result)
+                        })
+                        .catch((reason) => {
+                            this.onSendBeaconRejected(reason)
+                        })
             })
             .then(() => this.testTearDown())
             .then(() => {
@@ -116,6 +117,11 @@ export abstract class Test<C extends TestConfiguration, R, D, SBR>
                 return this._results
             })
     }
+
+    /**
+     * TODO
+     */
+    abstract shouldSendBeacon(): boolean
 
     /**
      * TODO

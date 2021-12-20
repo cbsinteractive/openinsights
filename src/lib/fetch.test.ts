@@ -24,6 +24,9 @@ describe("Fetch", () => {
         unknown,
         unknown
     > {
+        shouldSendBeacon(): boolean {
+            throw new Error("Method not implemented.")
+        }
         get resourceURL(): string {
             throw new Error("Method not mocked.")
         }
