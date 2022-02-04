@@ -22,8 +22,7 @@ export interface FetchTestResultBundle {
 
 /**
  * Class representing a basic "fetch" test. It fetches a supplied resource from the
- * network and collects the corresponding ResourceTimingEntry from the
- * Performance timeline.
+ * network and collects the corresponding entry from the Performance timeline.
  *
  * Along with its parent class {@link Test}, the class provides a number of hooks
  * enabling providers to control certain implementation details supporting their
