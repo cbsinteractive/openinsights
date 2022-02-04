@@ -281,7 +281,7 @@ describe("Fetch", () => {
                 testResultBundle: {},
                 beaconHandler: new UnitTestBeaconHandler({ a: 0 }),
                 entry: Object.assign({}, DEFAULT_RESOURCE_TIMING_ENTRY, {
-                    connectStart: 2,
+                    connectStart: 1,
                     connectEnd: 2,
                     requestStart: 0,
                 }),
