@@ -21,9 +21,7 @@ function getValidEntry(
 ): ResourceTimingEntry | undefined {
     let k = 0
     while (k < list.length) {
-        /* eslint-disable @typescript-eslint/no-explicit-any */
         const e = list[k] as any as ResourceTimingEntry
-        /* eslint-enable @typescript-eslint/no-explicit-any */
         if (isValidEntryFunc(e)) {
             return e
         }

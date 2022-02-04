@@ -223,7 +223,6 @@ export abstract class Fetch<
             })
     }
 
-    /* eslint-disable @typescript-eslint/no-unused-vars */
     static outputEventTimeElapsedMessage(
         intervalName: string,
         startedAt: NullableDate,

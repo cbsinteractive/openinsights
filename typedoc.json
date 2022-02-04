@@ -1,8 +1,4 @@
 {
-    "inputFiles": [
-        "./src"
-    ],
-    "mode": "modules",
-    "out": "doc",
-    "disableSources": true
+  "out": "doc",
+  "disableSources": true
 }
