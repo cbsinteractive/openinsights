@@ -100,13 +100,14 @@ export abstract class Test<C extends TestConfiguration, R, D, SBR>
                 return this.test()
             })
             .then(() => {
-                this.sendBeacon()
-                    .then((result) => {
-                        this.onSendBeaconResolved(result)
-                    })
-                    .catch((reason) => {
-                        this.onSendBeaconRejected(reason)
-                    })
+                this.shouldSendBeacon() &&
+                    this.sendBeacon()
+                        .then((result) => {
+                            this.onSendBeaconResolved(result)
+                        })
+                        .catch((reason) => {
+                            this.onSendBeaconRejected(reason)
+                        })
             })
             .then(() => this.testTearDown())
             .then(() => {
@@ -115,6 +116,14 @@ export abstract class Test<C extends TestConfiguration, R, D, SBR>
             .catch(() => {
                 return this._results
             })
+    }
+
+    /**
+     * Give providers a final say as to whether a beacon should be sent.
+     * The default implementation simply returns `true`.
+     */
+    shouldSendBeacon(): boolean {
+        return true
     }
 
     /**
