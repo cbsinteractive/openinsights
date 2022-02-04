@@ -7,10 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [next] - TBD
 
-After 0.1.0 has been tagged and a Github release made, start accumulating changes here.
+## [2.1.0] - TBD
+
+-   Add optional Test::shouldSendBeacon hook.
 
 ## [0.1.0] - TBD
 
 ### Added
 
-- Initial implementation of the Open Insights library.
+-   Initial implementation of the Open Insights library.
