@@ -1,7 +1,3 @@
-/* eslint-disable
-    @typescript-eslint/explicit-module-boundary-types,
-    @typescript-eslint/no-explicit-any,
-*/
 /**
  * Utility function to test whether an object has own nested property. This is
  * used instead of Object.prototype.hasOwnProperty() due to browser support.

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.1.0] - TBD
 
 -   Add optional Test::shouldSendBeacon hook.
+-   Generated documentation is removed from source control. Users can generate documentation from source code to read locally by running `npm run build:doc`.
 
 ## [0.1.0] - TBD
 
