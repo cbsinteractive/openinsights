@@ -1,4 +1,3 @@
-import { NullableDate, ResourceTimingEntry } from "../@types"
 import { BeaconHandler } from "../util/beaconHandler"
 import { asyncGetEntry } from "./resourceTiming"
 import { Test, TestConfiguration } from "./test"
@@ -51,13 +50,13 @@ export abstract class Fetch<
      * Diagnostic timestamps to help grok issues related to the asynchronous
      * nature of this workflow.
      */
-    private _fetchStartedAt: NullableDate = null
-    private _abortTimeoutClearedAt: NullableDate = null
-    private _errorCaughtAt: NullableDate = null
-    private _fetchAbortedAt: NullableDate = null
-    private _fetchCompletedAt: NullableDate = null
-    private _blobBeganAt: NullableDate = null
-    private _blobCompletedAt: NullableDate = null
+    private _fetchStartedAt?: Date
+    private _abortTimeoutClearedAt?: Date
+    private _errorCaughtAt?: Date
+    private _fetchAbortedAt?: Date
+    private _fetchCompletedAt?: Date
+    private _blobBeganAt?: Date
+    private _blobCompletedAt?: Date
 
     constructor(config: C, testResult: R, beaconHandler: BeaconHandler<SBR>) {
         super(config, testResult, beaconHandler)
@@ -76,7 +75,7 @@ export abstract class Fetch<
      */
     abstract updateFetchTestResults(
         response: Response,
-        entry: ResourceTimingEntry,
+        entry: PerformanceResourceTiming,
     ): Promise<void>
 
     /**
@@ -98,7 +97,9 @@ export abstract class Fetch<
      * A provider may override the default logic used to determine a valid
      * Resource Timing entry using the optional isValidEntryFunc argument.
      */
-    makeValidateResourceTimingEntryFunc(): (e: ResourceTimingEntry) => boolean {
+    makeValidateResourceTimingEntryFunc(): (
+        e: PerformanceResourceTiming,
+    ) => boolean {
         return (e) => e.requestStart !== 0 && e.connectStart !== e.connectEnd
     }
 
@@ -183,6 +184,11 @@ export abstract class Fetch<
             this.setTimeoutId(
                 window.setTimeout(() => {
                     this._fetchAbortedAt = new Date()
+                    Fetch.outputEventTimeElapsedMessage(
+                        "Fetch aborted",
+                        this._fetchStartedAt,
+                        this._fetchAbortedAt,
+                    )
                     this._abortController.abort()
                     this.testResults.timeoutTriggered = true
                 }, this.config.timeout),
@@ -225,8 +231,8 @@ export abstract class Fetch<
 
     static outputEventTimeElapsedMessage(
         intervalName: string,
-        startedAt: NullableDate,
-        endedAt: Date,
+        startedAt?: Date,
+        endedAt?: Date,
         addendum?: string,
     ): void {
         if (addendum) {
@@ -234,9 +240,15 @@ export abstract class Fetch<
         } else {
             addendum = ""
         }
-        if (startedAt != null) {
-            const diffInMs = endedAt.getTime() - startedAt.getTime()
-            // console.log(`${intervalName} after ${diffInMs} ms${addendum}`)
+        if (!startedAt) {
+            // console.log("Start timestamp not provided")
+            return
         }
+        if (!endedAt) {
+            // console.log("End timestamp not provided")
+            return
+        }
+        // const diffInMs = endedAt.getTime() - startedAt.getTime()
+        // console.log(`${intervalName} after ${diffInMs} ms${addendum}`)
     }
 }
