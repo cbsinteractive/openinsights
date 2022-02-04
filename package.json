@@ -14,7 +14,7 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc --build",
-    "build:doc": "rimraf doc && typedoc",
+    "build:doc": "rimraf doc && typedoc src/index.ts",
     "build:release": "rimraf dist && rollup -c",
     "lint": "tsc && eslint --fix 'src/**'",
     "lint-check-only": "tsc && eslint 'src/**'",
