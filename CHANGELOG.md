@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Changed
 
--   BREAKING CHANGE: Changed updateFetchTestResults to take a `PerformanceResourceTiming` parameter. The custom `ResourceTimingEntry` type has been removed.
+-   BREAKING CHANGE: Changed Fetch::updateFetchTestResults to take a `PerformanceResourceTiming` parameter. The custom `ResourceTimingEntry` type has been removed.
 
 ## Added
 
