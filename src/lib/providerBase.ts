@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Executable, Provider } from "../@types"
 import { getWindow } from "../util/getWindow"
 import { hasProperties } from "../util/object"
@@ -73,7 +72,6 @@ export abstract class ProviderBase<SC> implements Provider {
      * See {@link Provider.sessionConfig}.
      */
     get sessionConfig(): SC {
-        /* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
         return this._sessionConfig!
     }
 }
