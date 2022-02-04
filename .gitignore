@@ -9,5 +9,8 @@ coverage/
 .yarn-integrity
 dist/
 
+# Generated documentation
+doc/
+
 # TypeScript cache
 *.tsbuildinfo
