@@ -34,24 +34,39 @@ on the core module itself.
 
 Within the project root directory:
 
-```bash
+```shell
 npm install
 ```
 
 ### Run Linter
 
-```bash
+```shell
 npm run lint
 ```
 
 ### Run Tests
 
-```bash
-npm run test
+```shell
+npm test
 ```
 
 ### Build Code Documentation
 
-```bash
+```shell
 npm run build:doc
+```
+
+### Publish
+
+Install prerequesite:
+
+```shell
+npm install --global np
+```
+
+Build release and publish to npm:
+
+```shell
+npm run build:release
+np
 ```
