@@ -119,9 +119,12 @@ export abstract class Test<C extends TestConfiguration, R, D, SBR>
     }
 
     /**
-     * TODO
+     * Give providers a final say as to whether a beacon should be sent.
+     * The default implementation simply returns `true`.
      */
-    abstract shouldSendBeacon(): boolean
+    shouldSendBeacon(): boolean {
+        return true
+    }
 
     /**
      * TODO
