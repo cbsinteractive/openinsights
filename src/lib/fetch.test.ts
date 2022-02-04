@@ -263,6 +263,30 @@ describe("Fetch", () => {
                 }),
                 expectedResult: true,
             },
+            {
+                description: "connect time must be non-zero",
+                fetchConfig: Object.assign({}, DEFAULT_FETCH_CONFIG),
+                testResultBundle: {},
+                beaconHandler: new UnitTestBeaconHandler({ a: 0 }),
+                entry: Object.assign({}, DEFAULT_RESOURCE_TIMING_ENTRY, {
+                    connectStart: 2,
+                    connectEnd: 2,
+                    requestStart: 3,
+                }),
+                expectedResult: false,
+            },
+            {
+                description: "request start must be non-zero",
+                fetchConfig: Object.assign({}, DEFAULT_FETCH_CONFIG),
+                testResultBundle: {},
+                beaconHandler: new UnitTestBeaconHandler({ a: 0 }),
+                entry: Object.assign({}, DEFAULT_RESOURCE_TIMING_ENTRY, {
+                    connectStart: 2,
+                    connectEnd: 2,
+                    requestStart: 0,
+                }),
+                expectedResult: false,
+            },
         ]
         tests.forEach((i) => {
             test(i.description, () => {
