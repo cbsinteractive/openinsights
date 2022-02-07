@@ -7,21 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [next] - TBD
 
-## [3.0.0] - TBD
+## [3.1.0] - 2022-02-07
 
-## Changed
+### Added
+
+-   Export ClientInfo type.
+
+## [3.0.0] - 2022-02-07
+
+### Changed
 
 -   BREAKING CHANGE: Changed Fetch::updateFetchTestResults to take a `PerformanceResourceTiming` parameter. The custom `ResourceTimingEntry` type has been removed.
 
-## Added
+### Added
 
 -   Add optional Test::shouldSendBeacon hook.
 
-## Removed
+### Removed
 
 -   Generated documentation is removed from source control. Users can generate documentation from source code to read locally by running `npm run build:doc`.
 
-## [0.1.0] - TBD
+## [0.1.0] - ???
 
 ### Added
 

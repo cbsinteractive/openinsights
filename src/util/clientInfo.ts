@@ -1,6 +1,6 @@
 import "unfetch/polyfill"
 
-type ClientInfo = Record<string, string | number | boolean | null>
+export type ClientInfo = Record<string, string | number | boolean | null>
 
 /**
  * Maps URLs (as strings) to Promise<{@link ClientInfo}> objects.
