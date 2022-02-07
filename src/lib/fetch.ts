@@ -29,9 +29,9 @@ export interface FetchTestResultBundle {
  * use case.
  *
  * @typeParam C The type to be used for the internal test configuration.
- * @typeParam D The type to be used for fetch test results.
- * @typeParam SBR The type to be used for send beacon results.
+ * @typeParam R The type to be used for fetch test results.
  * @typeParam D The type to be used for the fetch beacon data.
+ * @typeParam SBR The type to be used for send beacon results.
  */
 export abstract class Fetch<
     C extends FetchConfiguration,
