@@ -1,5 +1,6 @@
 import "unfetch/polyfill"
-import { ClientInfo } from "../@types"
+
+type ClientInfo = Record<string, string | number | boolean | null>
 
 /**
  * Maps URLs (as strings) to Promise<{@link ClientInfo}> objects.

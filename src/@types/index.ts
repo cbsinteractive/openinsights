@@ -1,24 +1,6 @@
 export { KnownErrors } from "../lib/errors"
 
 /**
- * An interface representing simple objects mapping strings to basic primative
- * types.
- */
-export interface SimpleObject {
-    [key: string]:
-        | SimpleObject
-        | SimpleObject[]
-        | Array<string | number | boolean | null>
-        | boolean
-        | number
-        | string
-        | null
-        | undefined
-}
-
-export type NullableDate = Date | null
-
-/**
  * An interface representing the result of a test's setup activity.
  */
 export interface TestSetupResult {
@@ -29,30 +11,14 @@ export interface TestSetupResult {
 }
 
 /**
- * A type representing a Resource Timing API entry having _entryType_
- * "resource".
- *
- * Alias for {@link SimpleObject}
- */
-export type ResourceTimingEntry = SimpleObject
-
-/**
  * An alias for a boolean-returning function that evaluates whether a Resource
  * Timing entry is valid. Used by
  * {@link getValidEntry} to assess validity of an
  * entry. Providers may override the default predicate.
  */
 export type ResourceTimingEntryValidationPredicate = (
-    entry: ResourceTimingEntry,
+    entry: PerformanceResourceTiming,
 ) => boolean
-
-/**
- * Represents the return value of a "client info request".
- * @remarks
- * This type of request is typically made in order to capture the client
- * resolver geo. See {@link getClientInfo}.
- */
-export type ClientInfo = SimpleObject
 
 /**
  * Encapsulates the result of one provider's RUM session.

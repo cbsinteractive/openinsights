@@ -1,9 +1,5 @@
-/*eslint guard-for-in:0*/
 import PerformanceObserver from "@fastly/performance-observer-polyfill"
-import {
-    ResourceTimingEntry,
-    ResourceTimingEntryValidationPredicate,
-} from "../@types"
+import { ResourceTimingEntryValidationPredicate } from "../@types"
 
 /**
  * Given a list of Resource Timing entries, return the first one that matches
@@ -18,11 +14,11 @@ import {
 function getValidEntry(
     list: PerformanceEntryList,
     isValidEntryFunc: ResourceTimingEntryValidationPredicate,
-): ResourceTimingEntry | undefined {
+): PerformanceResourceTiming | undefined {
     let k = 0
     while (k < list.length) {
-        const e = list[k] as any as ResourceTimingEntry
-        if (isValidEntryFunc(e)) {
+        const e = list[k]
+        if (e instanceof PerformanceResourceTiming && isValidEntryFunc(e)) {
             return e
         }
         k++
@@ -47,9 +43,9 @@ function asyncGetEntry(
     name: string,
     timeout: number,
     isValidEntryFunc: ResourceTimingEntryValidationPredicate,
-): Promise<ResourceTimingEntry> {
+): Promise<PerformanceResourceTiming> {
     return new Promise((resolve, reject): void => {
-        let entry: ResourceTimingEntry | undefined
+        let entry: PerformanceResourceTiming | undefined
 
         const observer = new PerformanceObserver(
             (

@@ -1,5 +1,4 @@
 import fetchMock from "jest-fetch-mock"
-import { ResourceTimingEntry, SimpleObject } from "../@types"
 import { makeDescription, TestCaseConfig } from "../testUtil"
 import { BeaconHandler } from "../util/beaconHandler"
 import { Fetch, FetchConfiguration, FetchTestResultBundle } from "./fetch"
@@ -8,7 +7,7 @@ import { asyncGetEntry } from "./resourceTiming"
 jest.mock("./resourceTiming")
 
 const asyncGetEntryMock = asyncGetEntry as jest.Mock<
-    Promise<ResourceTimingEntry>
+    Promise<PerformanceResourceTiming>
 >
 
 beforeEach(() => {
@@ -18,6 +17,44 @@ beforeEach(() => {
 })
 
 describe("Fetch", () => {
+    class TestPerformanceServerTiming implements PerformanceServerTiming {
+        description = "foo"
+        duration = 0
+        name = "foo"
+        toJSON() {
+            throw new Error("Method not implemented.")
+        }
+    }
+    const DEFAULT_SERVER_TIMING_ENTRY = new TestPerformanceServerTiming()
+    class TestPerformanceResourceTiming implements PerformanceResourceTiming {
+        connectEnd = 0
+        connectStart = 0
+        decodedBodySize = 0
+        domainLookupEnd = 0
+        domainLookupStart = 0
+        encodedBodySize = 0
+        fetchStart = 0
+        initiatorType = "foo"
+        nextHopProtocol = "foo"
+        redirectEnd = 0
+        redirectStart = 0
+        requestStart = 0
+        responseEnd = 0
+        responseStart = 0
+        secureConnectionStart = 0
+        serverTiming = [Object.assign({}, DEFAULT_SERVER_TIMING_ENTRY)]
+        transferSize = 0
+        workerStart = 0
+        toJSON() {
+            throw new Error("Method not implemented.")
+        }
+        duration = 0
+        entryType = "foo"
+        name = "foo"
+        startTime = 0
+    }
+    const DEFAULT_RESOURCE_TIMING_ENTRY = new TestPerformanceResourceTiming()
+
     class UnitTestFetch extends Fetch<
         FetchConfiguration,
         FetchTestResultBundle,
@@ -77,7 +114,7 @@ describe("Fetch", () => {
             /**
              * If missing, then the asyncGetEntry Promise will be rejected
              */
-            asyncGetEntryResponse?: SimpleObject
+            asyncGetEntryResponse?: PerformanceResourceTiming
             fetchObjectProperties: PropertyDescriptorMap
             setTimeoutOptions?: SetTimeoutOptions
             preventClearTimeout: boolean
@@ -210,7 +247,7 @@ describe("Fetch", () => {
     })
     describe("makeValidateResourceTimingEntryFunc", () => {
         interface TestConfig extends FetchTestConfig {
-            entry: SimpleObject
+            entry: PerformanceResourceTiming
             expectedResult: boolean
         }
         const tests: Array<TestConfig> = [
@@ -219,12 +256,36 @@ describe("Fetch", () => {
                 fetchConfig: Object.assign({}, DEFAULT_FETCH_CONFIG),
                 testResultBundle: {},
                 beaconHandler: new UnitTestBeaconHandler({ a: 0 }),
-                entry: {
-                    requestStart: 1,
-                    connectStart: 2,
-                    connectEnd: 3,
-                },
+                entry: Object.assign({}, DEFAULT_RESOURCE_TIMING_ENTRY, {
+                    connectStart: 1,
+                    connectEnd: 2,
+                    requestStart: 3,
+                }),
                 expectedResult: true,
+            },
+            {
+                description: "connect time must be non-zero",
+                fetchConfig: Object.assign({}, DEFAULT_FETCH_CONFIG),
+                testResultBundle: {},
+                beaconHandler: new UnitTestBeaconHandler({ a: 0 }),
+                entry: Object.assign({}, DEFAULT_RESOURCE_TIMING_ENTRY, {
+                    connectStart: 2,
+                    connectEnd: 2,
+                    requestStart: 3,
+                }),
+                expectedResult: false,
+            },
+            {
+                description: "request start must be non-zero",
+                fetchConfig: Object.assign({}, DEFAULT_FETCH_CONFIG),
+                testResultBundle: {},
+                beaconHandler: new UnitTestBeaconHandler({ a: 0 }),
+                entry: Object.assign({}, DEFAULT_RESOURCE_TIMING_ENTRY, {
+                    connectStart: 1,
+                    connectEnd: 2,
+                    requestStart: 0,
+                }),
+                expectedResult: false,
             },
         ]
         tests.forEach((i) => {
