@@ -56,6 +56,5 @@ npm install --global np
 Build release and publish to npm:
 
 ```shell
-npm run build:release
 np --branch main-viacomcbs
 ```
