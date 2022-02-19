@@ -42,7 +42,7 @@ describe("startLater", () => {
                     shouldRun: jest.fn().mockReturnValue(true),
                     fetchSessionConfig: jest.fn<
                         Promise<UnitTestSessionConfig>,
-                        string[]
+                        any
                     >(() => Promise.resolve({})),
                     expandTasks: jest.fn<Array<Executable>, any>(() => {
                         return [
