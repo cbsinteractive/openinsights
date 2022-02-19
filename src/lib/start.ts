@@ -30,23 +30,8 @@ export function start(settings: ClientSettings): Promise<SessionResult> {
     if (!activeProviders.length) {
         return Promise.resolve({ testResults: [] })
     }
-    // We can't use Promise.allSettled() below due to browser support.
-    // Therefore, we implement it manually via p.then().catch() to collect all
-    // results regardless of their resolution status. I.e. we polyfill.
-    return Promise.all(
-        activeProviders
-            .map((provider) => provider.fetchSessionConfig())
-            .map((p) =>
-                p
-                    .then((value) => ({
-                        status: "fulfilled",
-                        value,
-                    }))
-                    .catch((reason) => ({
-                        status: "rejected",
-                        reason,
-                    })),
-            ),
+    return Promise.allSettled(
+        activeProviders.map((provider) => provider.fetchSessionConfig()),
     ).then((settled) => {
         const executables: Executable[] = []
         settled.forEach((result, idx) => {

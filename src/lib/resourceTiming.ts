@@ -1,4 +1,3 @@
-import PerformanceObserver from "@fastly/performance-observer-polyfill"
 import { ResourceTimingEntryValidationPredicate } from "../@types"
 
 /**

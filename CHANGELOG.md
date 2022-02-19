@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [next] - TBD
 
+## [4.0.0] - TBD
+
+### Changed
+
+-   BREAKING CHANGE: The `ProviderBase` constructor now requires a `Window` argument.
+-   Default feature detection (i.e. `ProviderBase::shouldRun`) now requires user agent to implement `PerformanceObserver`, `performance.getEntriesByType` and `PerformanceResourceTiming`.
+
 ## [3.1.0] - 2022-02-07
 
 ### Added

@@ -1,8 +1,8 @@
-import { Executable, SessionResult } from "./@types"
+import { SessionResult } from "./@types"
 import init from "./init"
-import { ProviderBase } from "./lib/providerBase"
 import { start, startLater } from "./lib/start"
 import { makeDescription, TestCaseConfig } from "./testUtil"
+import { UnitTestProvider } from "./testUtil/unitTestProvider"
 import ClientSettingsBuilder from "./util/clientSettingsBuilder"
 
 jest.mock("./lib/start")
@@ -11,7 +11,6 @@ const mockStart = start as jest.Mock<Promise<SessionResult>>
 const mockStartLater = startLater as jest.Mock<Promise<SessionResult>>
 
 describe("init and ProviderBase", () => {
-    type UnitTestSessionConfig = number
     interface StartConfig {
         result: SessionResult
     }
@@ -22,17 +21,7 @@ describe("init and ProviderBase", () => {
         startLaterConfig?: StartConfig
         expectedResult: unknown
     }
-    class UnitTestProvider extends ProviderBase<UnitTestSessionConfig> {
-        constructor() {
-            super("Unit Testing")
-        }
-        fetchSessionConfig(): Promise<UnitTestSessionConfig> {
-            throw new Error("Method not implemented: fetchSessionConfig")
-        }
-        expandTasks(): Executable[] {
-            throw new Error("Method not implemented: expandTasks")
-        }
-    }
+
     const tests: Array<TestConfig> = [
         {
             description: makeDescription("single provider"),
