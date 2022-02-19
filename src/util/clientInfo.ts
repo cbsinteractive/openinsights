@@ -1,5 +1,3 @@
-import "unfetch/polyfill"
-
 export type ClientInfo = Record<string, string | number | boolean | null>
 
 /**
