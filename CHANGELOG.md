@@ -11,32 +11,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
--   BREAKING CHANGE: The `ProviderBase` constructor now requires a `Window` argument.
--   Default feature detection (i.e. `ProviderBase::shouldRun`) now requires user agent to implement `PerformanceObserver`, `performance.getEntriesByType` and `PerformanceResourceTiming`.
--   Since default feature detection requires native implementations to be present, removed dependencies on `unfetch` and `@fastly/performance-observer-polyfill`.
+- BREAKING CHANGE: The `ProviderBase` constructor now requires a `Window` argument.
+- Default feature detection (i.e. `ProviderBase::shouldRun`) now requires user agent to implement `PerformanceObserver`, `performance.getEntriesByType` and `PerformanceResourceTiming`.
+- Since default feature detection requires native implementations to be present, removed dependencies on `unfetch` and `@fastly/performance-observer-polyfill`.
 
 ## [3.1.0] - 2022-02-07
 
 ### Added
 
--   Export ClientInfo type.
+- Export ClientInfo type.
 
 ## [3.0.0] - 2022-02-07
 
 ### Changed
 
--   BREAKING CHANGE: Changed Fetch::updateFetchTestResults to take a `PerformanceResourceTiming` parameter. The custom `ResourceTimingEntry` type has been removed.
+- BREAKING CHANGE: Changed Fetch::updateFetchTestResults to take a `PerformanceResourceTiming` parameter. The custom `ResourceTimingEntry` type has been removed.
 
 ### Added
 
--   Add optional Test::shouldSendBeacon hook.
+- Add optional Test::shouldSendBeacon hook.
 
 ### Removed
 
--   Generated documentation is removed from source control. Users can generate documentation from source code to read locally by running `npm run build:doc`.
+- Generated documentation is removed from source control. Users can generate documentation from source code to read locally by running `npm run build:doc`.
 
 ## [0.1.0] - ???
 
 ### Added
 
--   Initial implementation of the Open Insights library.
+- Initial implementation of the Open Insights library.
