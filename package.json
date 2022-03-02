@@ -1,6 +1,6 @@
 {
   "name": "@tacoherd/openinsights",
-  "version": "3.1.1",
+  "version": "4.0.0",
   "main": "dist/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/types/index.d.ts",
