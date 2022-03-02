@@ -1,5 +1,21 @@
 import { ResourceTimingEntryValidationPredicate } from "../@types"
 
+class PerformanceTimingObserverTimeoutError extends Error {
+    constructor(private _name: string, private _timeout: number) {
+        super(
+            `Timeout waiting for timing data to appear for ${_name} (timeout: ${_timeout})`,
+        )
+    }
+
+    get name(): string {
+        return this._name
+    }
+
+    get timeout(): number {
+        return this._timeout
+    }
+}
+
 /**
  * Given a list of Resource Timing entries, return the first one that matches
  * a set of rules.
@@ -63,9 +79,7 @@ function asyncGetEntry(
         setTimeout((): void => {
             if (!entry) {
                 observer.disconnect()
-                reject(
-                    new Error(`Timed out observing resource timing (${name})`),
-                )
+                reject(new PerformanceTimingObserverTimeoutError(name, timeout))
             }
         }, timeout)
 
@@ -77,4 +91,4 @@ function asyncGetEntry(
     })
 }
 
-export { asyncGetEntry }
+export { asyncGetEntry, PerformanceTimingObserverTimeoutError }

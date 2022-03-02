@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [next] - TBD
 
+## [4.1.0] - 2022-03-02
+
+### Added
+
+- The promise returned from `asyncGetEntry` rejects with a `PerformanceTimingObserverTimeoutError` if a Resource Timing entry for the test cannot be found. This appears to happen due to bugs in Resource Timing implementations, particularly in Safari.
+
 ## [4.0.0] - 2022-03-01
 
 ### Changed
