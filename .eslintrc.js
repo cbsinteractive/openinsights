@@ -5,9 +5,11 @@ module.exports = {
         ecmaVersion: 2020,
         sourceType: "module",
     },
-    plugins: ["prettier"],
+    plugins: ["prettier", "@typescript-eslint"],
     extends: ["plugin:prettier/recommended"],
     rules: {
         "prettier/prettier": "error",
+        "no-unused-vars": "off",
+        "@typescript-eslint/no-unused-vars": ["error"],
     },
 }

@@ -44,13 +44,6 @@ export interface SessionResult {
 export declare interface Navigator extends NavigatorNetworkInformation {}
 
 /**
- * See W3C Spec Draft http://wicg.github.io/netinfo/
- * Edition: Draft Community Group Report 20 February 2019
- * See http://wicg.github.io/netinfo/#navigatornetworkinformation-interface
- */
-declare interface WorkerNavigator extends NavigatorNetworkInformation {}
-
-/**
  * See http://wicg.github.io/netinfo/#navigatornetworkinformation-interface
  */
 declare interface NavigatorNetworkInformation {
