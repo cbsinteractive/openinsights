@@ -74,9 +74,7 @@ export function asyncGetEntry(
                 const namedEntries = list.getEntriesByName(name)
                 if (namedEntries.length) {
                     window.clearTimeout(timeoutId)
-                    console.log(`Timeout cleared (${timeoutId})`)
                     observer.disconnect()
-                    console.log("Observer disconnected")
                     entry = getValidEntry(
                         window,
                         namedEntries,
@@ -91,8 +89,6 @@ export function asyncGetEntry(
             },
         )
         const timeoutId = window.setTimeout(() => {
-            console.log("Observer timeout reached")
-            console.log(entry)
             if (!entry) {
                 observer.disconnect()
                 reject(new PerformanceTimingObserverTimeoutError(name, timeout))
