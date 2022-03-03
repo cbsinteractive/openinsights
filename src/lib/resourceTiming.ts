@@ -1,6 +1,6 @@
 import { ResourceTimingEntryValidationPredicate } from "../@types"
 
-class PerformanceTimingObserverTimeoutError extends Error {
+export class PerformanceTimingObserverTimeoutError extends Error {
     constructor(private _name: string, private _timeout: number) {
         super(
             `Timeout waiting for timing data to appear for ${_name} (timeout: ${_timeout})`,
@@ -13,6 +13,14 @@ class PerformanceTimingObserverTimeoutError extends Error {
 
     get timeout(): number {
         return this._timeout
+    }
+}
+
+export class NoValidEntryError extends Error {
+    constructor(name: string) {
+        super(
+            `At least one Resource Timing entry was found for ${name} but none passed validation`,
+        )
     }
 }
 
@@ -54,35 +62,41 @@ function getValidEntry(
  * @param isValidEntryFunc Boolean function used to determine validity of
  * Resource Timing entry.
  */
-function asyncGetEntry(
+export function asyncGetEntry(
+    window: Window & typeof globalThis,
     name: string,
     timeout: number,
     isValidEntryFunc: ResourceTimingEntryValidationPredicate,
 ): Promise<PerformanceResourceTiming> {
-    return new Promise((resolve, reject): void => {
+    return new window.Promise((resolve, reject): void => {
         let entry: PerformanceResourceTiming | undefined
-
-        const observer = new PerformanceObserver(
+        const observer = new window.PerformanceObserver(
             (
                 list: PerformanceObserverEntryList,
                 observer: PerformanceObserver,
             ): void => {
                 const namedEntries = list.getEntriesByName(name)
-                entry = getValidEntry(namedEntries, isValidEntryFunc)
-                if (entry) {
+                if (namedEntries.length) {
+                    window.clearTimeout(timeoutId)
+                    console.log(`Timeout cleared (${timeoutId})`)
                     observer.disconnect()
-                    resolve(entry)
+                    console.log("Observer disconnected")
+                    entry = getValidEntry(namedEntries, isValidEntryFunc)
+                    if (entry) {
+                        resolve(entry)
+                    } else {
+                        reject(new NoValidEntryError(name))
+                    }
                 }
             },
         )
-
-        setTimeout((): void => {
+        const timeoutId = window.setTimeout((): void => {
             if (!entry) {
                 observer.disconnect()
                 reject(new PerformanceTimingObserverTimeoutError(name, timeout))
             }
         }, timeout)
-
+        console.log(`Timeout ID: ${timeoutId}`)
         try {
             observer.observe({ entryTypes: ["resource"] })
         } catch (e) {
@@ -90,5 +104,3 @@ function asyncGetEntry(
         }
     })
 }
-
-export { asyncGetEntry, PerformanceTimingObserverTimeoutError }

@@ -118,6 +118,7 @@ describe("Fetch", () => {
             fetchObjectProperties: PropertyDescriptorMap
             setTimeoutOptions?: SetTimeoutOptions
             preventClearTimeout: boolean
+            window: unknown
         }
 
         const DEFAULT_FETCH_OBJECT_PROPERTIES: PropertyDescriptorMap = {
@@ -150,6 +151,7 @@ describe("Fetch", () => {
                 DEFAULT_FETCH_OBJECT_PROPERTIES,
             ),
             preventClearTimeout: false,
+            window: {},
         }
 
         const tests: Array<TestConfig> = [
@@ -197,6 +199,9 @@ describe("Fetch", () => {
         tests.forEach((i) => {
             test(i.description, async () => {
                 const sut = new UnitTestFetch(
+                    {
+                        window: i.window as Window & typeof globalThis,
+                    },
                     i.fetchConfig,
                     i.testResultBundle,
                     i.beaconHandler,
@@ -249,6 +254,7 @@ describe("Fetch", () => {
         interface TestConfig extends FetchTestConfig {
             entry: PerformanceResourceTiming
             expectedResult: boolean
+            window: unknown
         }
         const tests: Array<TestConfig> = [
             {
@@ -261,6 +267,7 @@ describe("Fetch", () => {
                     connectEnd: 2,
                     requestStart: 3,
                 }),
+                window: {},
                 expectedResult: true,
             },
             {
@@ -273,6 +280,7 @@ describe("Fetch", () => {
                     connectEnd: 2,
                     requestStart: 3,
                 }),
+                window: {},
                 expectedResult: false,
             },
             {
@@ -285,12 +293,16 @@ describe("Fetch", () => {
                     connectEnd: 2,
                     requestStart: 0,
                 }),
+                window: {},
                 expectedResult: false,
             },
         ]
         tests.forEach((i) => {
             test(i.description, () => {
                 const sut = new UnitTestFetch(
+                    {
+                        window: i.window as Window & typeof globalThis,
+                    },
                     i.fetchConfig,
                     i.testResultBundle,
                     i.beaconHandler,
