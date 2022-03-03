@@ -1,5 +1,8 @@
 import { TestCaseConfig, TestPerformanceResourceTiming } from "../testUtil"
-import { asyncGetEntry } from "./resourceTiming"
+import {
+    asyncGetEntry,
+    PerformanceTimingObserverTimeoutError,
+} from "./resourceTiming"
 
 describe("resourceTiming", () => {
     interface TestConfig extends TestCaseConfig {
@@ -7,12 +10,12 @@ describe("resourceTiming", () => {
         timeout: number
         getEntriesByNameResults: Array<PerformanceEntryList>
         isValidEntryFuncResults: Array<boolean>
-        expectedResult: PerformanceResourceTiming
+        expectedResult?: PerformanceResourceTiming
+        expectedError?: Error
     }
     const testConfigs: Array<TestConfig> = [
         {
-            description:
-                "RT entry not found results in PerformanceObserverTimeoutError",
+            description: "RT entry found",
             resourceName: "foo",
             timeout: 10000,
             getEntriesByNameResults: [
@@ -27,6 +30,25 @@ describe("resourceTiming", () => {
             expectedResult: new TestPerformanceResourceTiming(
                 "https://foo.com/testobject",
                 {},
+            ),
+        },
+        {
+            description:
+                "RT entry not found results in PerformanceObserverTimeoutError",
+            resourceName: "foo",
+            timeout: 10000,
+            getEntriesByNameResults: [
+                [
+                    new TestPerformanceResourceTiming(
+                        "https://foo.com/testobject",
+                        {},
+                    ),
+                ],
+            ],
+            isValidEntryFuncResults: [true],
+            expectedError: new PerformanceTimingObserverTimeoutError(
+                "foo",
+                10000,
             ),
         },
     ]
@@ -55,8 +77,7 @@ describe("resourceTiming", () => {
                         private _callback: PerformanceObserverCallback,
                     ) {}
                     disconnect(): void {}
-                    observe(options?: PerformanceObserverInit): void {
-                        expect(options).toEqual({ entryTypes: ["resource"] })
+                    observe(): void {
                         this._callback(list, this)
                     }
                     takeRecords(): PerformanceEntryList {
@@ -64,24 +85,40 @@ describe("resourceTiming", () => {
                     }
                 },
                 PerformanceResourceTiming: TestPerformanceResourceTiming,
-                setTimeout: () => 123,
+                setTimeout: jest.fn(),
                 clearTimeout: () => {},
             }
             const isValidEntryFunc = jest.fn()
             testConfig.isValidEntryFuncResults.forEach((i) =>
                 isValidEntryFunc.mockReturnValueOnce(i),
             )
-            const result = await asyncGetEntry(
-                window as unknown as Window & typeof globalThis,
-                testConfig.resourceName,
-                testConfig.timeout,
-                isValidEntryFunc,
-            )
-            console.log(result)
-            expect(isValidEntryFunc.mock.calls.length).toBe(
-                testConfig.isValidEntryFuncResults.length,
-            )
-            expect(result).toEqual(testConfig.expectedResult)
+            if (testConfig.expectedResult) {
+                window.setTimeout.mockReturnValueOnce(123)
+                expect(
+                    await asyncGetEntry(
+                        window as unknown as Window & typeof globalThis,
+                        testConfig.resourceName,
+                        testConfig.timeout,
+                        isValidEntryFunc,
+                    ),
+                ).toEqual(testConfig.expectedResult)
+                expect(isValidEntryFunc.mock.calls.length).toBe(
+                    testConfig.isValidEntryFuncResults.length,
+                )
+            } else {
+                window.setTimeout.mockImplementationOnce((callback) => {
+                    callback.apply()
+                    return 123
+                })
+                await expect(
+                    asyncGetEntry(
+                        window as unknown as Window & typeof globalThis,
+                        testConfig.resourceName,
+                        testConfig.timeout,
+                        isValidEntryFunc,
+                    ),
+                ).rejects.toEqual(testConfig.expectedError)
+            }
         })
     })
 })

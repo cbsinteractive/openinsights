@@ -39,12 +39,9 @@ function getValidEntry(
     list: PerformanceEntryList,
     isValidEntryFunc: ResourceTimingEntryValidationPredicate,
 ): PerformanceResourceTiming | undefined {
-    console.log(window.PerformanceResourceTiming)
     let k = 0
     while (k < list.length) {
         const e = list[k]
-        console.log(e)
-        console.log(typeof e)
         if (
             e instanceof window.PerformanceResourceTiming &&
             isValidEntryFunc(e)
@@ -81,12 +78,8 @@ export function asyncGetEntry(
             (
                 list: PerformanceObserverEntryList,
                 observer: PerformanceObserver,
-            ): void => {
-                // console.log(list)
-                // console.log(observer)
-                console.log("Calling getEntriesByName")
+            ) => {
                 const namedEntries = list.getEntriesByName(name)
-                console.log(namedEntries)
                 if (namedEntries.length) {
                     window.clearTimeout(timeoutId)
                     console.log(`Timeout cleared (${timeoutId})`)
@@ -105,15 +98,20 @@ export function asyncGetEntry(
                 }
             },
         )
-        const timeoutId = window.setTimeout((): void => {
+        const timeoutId = window.setTimeout(() => {
+            console.log("Observer timeout reached")
+            console.log(entry)
             if (!entry) {
                 observer.disconnect()
                 reject(new PerformanceTimingObserverTimeoutError(name, timeout))
             }
         }, timeout)
-        console.log(`Timeout ID: ${timeoutId}`)
         try {
-            observer.observe({ entryTypes: ["resource"] })
+            observer.observe({
+                type: "resource",
+                // Allows the observer access to entries buffered before it was created
+                buffered: true,
+            })
         } catch (e) {
             reject(e)
         }
