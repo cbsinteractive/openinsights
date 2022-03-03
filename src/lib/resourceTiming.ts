@@ -35,13 +35,20 @@ export class NoValidEntryError extends Error {
  * of Resource Timing entries.
  */
 function getValidEntry(
+    window: Window & typeof globalThis,
     list: PerformanceEntryList,
     isValidEntryFunc: ResourceTimingEntryValidationPredicate,
 ): PerformanceResourceTiming | undefined {
+    console.log(window.PerformanceResourceTiming)
     let k = 0
     while (k < list.length) {
         const e = list[k]
-        if (e instanceof PerformanceResourceTiming && isValidEntryFunc(e)) {
+        console.log(e)
+        console.log(typeof e)
+        if (
+            e instanceof window.PerformanceResourceTiming &&
+            isValidEntryFunc(e)
+        ) {
             return e
         }
         k++
@@ -75,13 +82,21 @@ export function asyncGetEntry(
                 list: PerformanceObserverEntryList,
                 observer: PerformanceObserver,
             ): void => {
+                // console.log(list)
+                // console.log(observer)
+                console.log("Calling getEntriesByName")
                 const namedEntries = list.getEntriesByName(name)
+                console.log(namedEntries)
                 if (namedEntries.length) {
                     window.clearTimeout(timeoutId)
                     console.log(`Timeout cleared (${timeoutId})`)
                     observer.disconnect()
                     console.log("Observer disconnected")
-                    entry = getValidEntry(namedEntries, isValidEntryFunc)
+                    entry = getValidEntry(
+                        window,
+                        namedEntries,
+                        isValidEntryFunc,
+                    )
                     if (entry) {
                         resolve(entry)
                     } else {
