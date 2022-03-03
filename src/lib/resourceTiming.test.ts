@@ -1,6 +1,7 @@
 import { TestCaseConfig, TestPerformanceResourceTiming } from "../testUtil"
 import {
     asyncGetEntry,
+    NoValidEntryError,
     PerformanceTimingObserverTimeoutError,
 } from "./resourceTiming"
 
@@ -10,6 +11,7 @@ describe("resourceTiming", () => {
         timeout: number
         getEntriesByNameResults: Array<PerformanceEntryList>
         isValidEntryFuncResults: Array<boolean>
+        ensureTimeout?: boolean
         expectedResult?: PerformanceResourceTiming
         expectedError?: Error
     }
@@ -46,10 +48,27 @@ describe("resourceTiming", () => {
                 ],
             ],
             isValidEntryFuncResults: [true],
+            ensureTimeout: true,
             expectedError: new PerformanceTimingObserverTimeoutError(
                 "foo",
                 10000,
             ),
+        },
+        {
+            description: "Invalid RT entry results in NoValidEntryError",
+            resourceName: "foo",
+            timeout: 10000,
+            getEntriesByNameResults: [
+                [
+                    new TestPerformanceResourceTiming(
+                        "https://foo.com/testobject",
+                        {},
+                    ),
+                ],
+            ],
+            isValidEntryFuncResults: [false],
+            ensureTimeout: false,
+            expectedError: new NoValidEntryError("foo"),
         },
     ]
     testConfigs.forEach((testConfig) => {
@@ -102,12 +121,11 @@ describe("resourceTiming", () => {
                         isValidEntryFunc,
                     ),
                 ).toEqual(testConfig.expectedResult)
-                expect(isValidEntryFunc.mock.calls.length).toBe(
-                    testConfig.isValidEntryFuncResults.length,
-                )
             } else {
                 window.setTimeout.mockImplementationOnce((callback) => {
-                    callback.apply()
+                    if (testConfig.ensureTimeout) {
+                        callback.apply()
+                    }
                     return 123
                 })
                 await expect(
@@ -119,6 +137,9 @@ describe("resourceTiming", () => {
                     ),
                 ).rejects.toEqual(testConfig.expectedError)
             }
+            expect(isValidEntryFunc.mock.calls.length).toBe(
+                testConfig.isValidEntryFuncResults.length,
+            )
         })
     })
 })
