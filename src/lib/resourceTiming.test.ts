@@ -9,9 +9,10 @@ describe("resourceTiming", () => {
     interface TestConfig extends TestCaseConfig {
         resourceName: string
         timeout: number
-        getEntriesByNameResults: Array<PerformanceEntryList>
+        getEntriesByNameResults?: Array<PerformanceEntryList>
         isValidEntryFuncResults: Array<boolean>
         ensureTimeout?: boolean
+        exceptionOnObserve?: Error
         expectedResult?: PerformanceResourceTiming
         expectedError?: Error
     }
@@ -70,6 +71,15 @@ describe("resourceTiming", () => {
             ensureTimeout: false,
             expectedError: new NoValidEntryError("foo"),
         },
+        {
+            description: "Exception thrown by observe is propagated",
+            resourceName: "foo",
+            timeout: 10000,
+            isValidEntryFuncResults: [],
+            ensureTimeout: false,
+            exceptionOnObserve: new Error("Oh noes!!!"),
+            expectedError: new Error("Oh noes!!!"),
+        },
     ]
     testConfigs.forEach((testConfig) => {
         test(testConfig.description, async () => {
@@ -82,11 +92,12 @@ describe("resourceTiming", () => {
                     throw new Error("Function not implemented.")
                 },
             }
-            testConfig.getEntriesByNameResults.forEach((i) =>
-                (
-                    list.getEntriesByName as jest.Mock<any, any>
-                ).mockReturnValueOnce(i),
-            )
+            testConfig.getEntriesByNameResults &&
+                testConfig.getEntriesByNameResults.forEach((i) =>
+                    (
+                        list.getEntriesByName as jest.Mock<any, any>
+                    ).mockReturnValueOnce(i),
+                )
             const window = {
                 Promise: Promise,
                 PerformanceObserver: class TestPerformanceObserver
@@ -97,6 +108,9 @@ describe("resourceTiming", () => {
                     ) {}
                     disconnect(): void {}
                     observe(): void {
+                        if (testConfig.exceptionOnObserve) {
+                            throw testConfig.exceptionOnObserve
+                        }
                         this._callback(list, this)
                     }
                     takeRecords(): PerformanceEntryList {
@@ -141,5 +155,19 @@ describe("resourceTiming", () => {
                 testConfig.isValidEntryFuncResults.length,
             )
         })
+    })
+
+    test("Cover PerformanceTimingObserverTimeoutError", () => {
+        const sut = new PerformanceTimingObserverTimeoutError("foo", 123)
+        expect(sut.message).toBe(
+            "Timeout waiting for timing data to appear for foo (timeout: 123)",
+        )
+    })
+
+    test("Cover NoValidEntryError", () => {
+        const sut = new NoValidEntryError("foo")
+        expect(sut.message).toBe(
+            "At least one Resource Timing entry was found for foo but none passed validation",
+        )
     })
 })
