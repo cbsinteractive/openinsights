@@ -83,11 +83,9 @@ export function asyncGetEntry(
                             namedEntries,
                             isValidEntryFunc,
                         )
-                        if (entry) {
-                            resolve(entry)
-                        } else {
-                            reject(new NoValidEntryError(name))
-                        }
+                        entry
+                            ? resolve(entry)
+                            : reject(new NoValidEntryError(name))
                     }
                 }
             },
