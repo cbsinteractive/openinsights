@@ -1,6 +1,8 @@
 import { ResourceTimingEntryValidationPredicate } from "../@types"
 
-export class PerformanceTimingObserverTimeoutError extends Error {
+export class PerformanceTimingObserverError extends Error {}
+
+class PerformanceTimingObserverTimeoutError extends PerformanceTimingObserverError {
     constructor(name: string, timeout: number) {
         super(
             `Timeout waiting for timing data to appear for ${name} (timeout: ${timeout})`,
@@ -8,7 +10,7 @@ export class PerformanceTimingObserverTimeoutError extends Error {
     }
 }
 
-export class NoValidEntryError extends Error {
+class NoValidEntryError extends PerformanceTimingObserverError {
     constructor(name: string) {
         super(
             `At least one Resource Timing entry was found for ${name} but none passed validation`,

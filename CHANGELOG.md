@@ -11,7 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- The promise returned from `asyncGetEntry` rejects with a `PerformanceTimingObserverTimeoutError` if a Resource Timing entry for the test cannot be found within the allotted timeframe. This appears to happen due to Resource Timing implementation bugs, particularly in Safari. The promise rejects with a `NoValidEntryError` if an entry is found but fails validation.
+- The promise returned from `asyncGetEntry` rejects with a `PerformanceTimingObserverError` in the following cases:
+
+  1. A Resource Timing entry for the test cannot be found within the allotted timeframe. This appears to happen due to Resource Timing implementation bugs, particularly in Safari.
+  2. A Resource Timing entry is found for the test but fails validation.
 
 ## [4.0.0] - 2022-03-01
 
