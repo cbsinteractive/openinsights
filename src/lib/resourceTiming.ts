@@ -73,19 +73,21 @@ export function asyncGetEntry(
                 list: PerformanceObserverEntryList,
                 observer: PerformanceObserver,
             ) => {
-                const namedEntries = list.getEntriesByName(name)
-                if (namedEntries.length) {
-                    window.clearTimeout(timeoutId)
-                    observer.disconnect()
-                    entry = getValidEntry(
-                        window,
-                        namedEntries,
-                        isValidEntryFunc,
-                    )
-                    if (entry) {
-                        resolve(entry)
-                    } else {
-                        reject(new NoValidEntryError(name))
+                if (!entry) {
+                    const namedEntries = list.getEntriesByName(name)
+                    if (namedEntries.length) {
+                        window.clearTimeout(timeoutId)
+                        observer.disconnect()
+                        entry = getValidEntry(
+                            window,
+                            namedEntries,
+                            isValidEntryFunc,
+                        )
+                        if (entry) {
+                            resolve(entry)
+                        } else {
+                            reject(new NoValidEntryError(name))
+                        }
                     }
                 }
             },
