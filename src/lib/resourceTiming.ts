@@ -1,5 +1,23 @@
 import { ResourceTimingEntryValidationPredicate } from "../@types"
 
+export class PerformanceTimingObserverError extends Error {}
+
+export class PerformanceTimingObserverTimeoutError extends PerformanceTimingObserverError {
+    constructor(name: string, timeout: number) {
+        super(
+            `Timeout waiting for timing data to appear for ${name} (timeout: ${timeout})`,
+        )
+    }
+}
+
+export class NoValidEntryError extends PerformanceTimingObserverError {
+    constructor(name: string) {
+        super(
+            `At least one Resource Timing entry was found for ${name} but none passed validation`,
+        )
+    }
+}
+
 /**
  * Given a list of Resource Timing entries, return the first one that matches
  * a set of rules.
@@ -11,13 +29,17 @@ import { ResourceTimingEntryValidationPredicate } from "../@types"
  * of Resource Timing entries.
  */
 function getValidEntry(
+    window: Window & typeof globalThis,
     list: PerformanceEntryList,
     isValidEntryFunc: ResourceTimingEntryValidationPredicate,
 ): PerformanceResourceTiming | undefined {
     let k = 0
     while (k < list.length) {
         const e = list[k]
-        if (e instanceof PerformanceResourceTiming && isValidEntryFunc(e)) {
+        if (
+            e instanceof window.PerformanceResourceTiming &&
+            isValidEntryFunc(e)
+        ) {
             return e
         }
         k++
@@ -38,43 +60,50 @@ function getValidEntry(
  * @param isValidEntryFunc Boolean function used to determine validity of
  * Resource Timing entry.
  */
-function asyncGetEntry(
+export function asyncGetEntry(
+    window: Window & typeof globalThis,
     name: string,
     timeout: number,
     isValidEntryFunc: ResourceTimingEntryValidationPredicate,
 ): Promise<PerformanceResourceTiming> {
-    return new Promise((resolve, reject): void => {
+    return new window.Promise((resolve, reject): void => {
         let entry: PerformanceResourceTiming | undefined
-
-        const observer = new PerformanceObserver(
+        const observer = new window.PerformanceObserver(
             (
                 list: PerformanceObserverEntryList,
                 observer: PerformanceObserver,
-            ): void => {
-                const namedEntries = list.getEntriesByName(name)
-                entry = getValidEntry(namedEntries, isValidEntryFunc)
-                if (entry) {
-                    observer.disconnect()
-                    resolve(entry)
+            ) => {
+                if (!entry) {
+                    const namedEntries = list.getEntriesByName(name)
+                    if (namedEntries.length) {
+                        window.clearTimeout(timeoutId)
+                        observer.disconnect()
+                        entry = getValidEntry(
+                            window,
+                            namedEntries,
+                            isValidEntryFunc,
+                        )
+                        entry
+                            ? resolve(entry)
+                            : reject(new NoValidEntryError(name))
+                    }
                 }
             },
         )
-
-        setTimeout((): void => {
+        const timeoutId = window.setTimeout(() => {
             if (!entry) {
                 observer.disconnect()
-                reject(
-                    new Error(`Timed out observing resource timing (${name})`),
-                )
+                reject(new PerformanceTimingObserverTimeoutError(name, timeout))
             }
         }, timeout)
-
         try {
-            observer.observe({ entryTypes: ["resource"] })
+            observer.observe({
+                type: "resource",
+                // Allows the observer access to entries buffered before it was created
+                buffered: true,
+            })
         } catch (e) {
             reject(e)
         }
     })
 }
-
-export { asyncGetEntry }

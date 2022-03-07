@@ -20,6 +20,10 @@ export interface FetchTestResultBundle {
     timeoutTriggered?: boolean
 }
 
+export interface Dependencies {
+    window: Window & typeof globalThis
+}
+
 /**
  * Class representing a basic "fetch" test. It fetches a supplied resource from the
  * network and collects the corresponding entry from the Performance timeline.
@@ -57,7 +61,12 @@ export abstract class Fetch<
     private _blobBeganAt?: Date
     private _blobCompletedAt?: Date
 
-    constructor(config: C, testResult: R, beaconHandler: BeaconHandler<SBR>) {
+    constructor(
+        private _deps: Dependencies,
+        config: C,
+        testResult: R,
+        beaconHandler: BeaconHandler<SBR>,
+    ) {
         super(config, testResult, beaconHandler)
     }
 
@@ -110,6 +119,7 @@ export abstract class Fetch<
         return Promise.all([
             this.fetchObject(),
             asyncGetEntry(
+                this._deps.window,
                 this.resourceURL,
                 this.config.performanceTimingObserverTimeout || defaultTimeout,
                 this.makeValidateResourceTimingEntryFunc(),

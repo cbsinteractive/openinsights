@@ -1,3 +1,5 @@
+export { TestPerformanceResourceTiming } from "./testPerformanceResourceTiming"
+
 export type TestCaseConfig = {
     description: string
 }
