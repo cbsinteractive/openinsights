@@ -69,7 +69,12 @@ describe("resourceTiming", () => {
             ],
             isValidEntryFuncResults: [false],
             ensureTimeout: false,
-            expectedError: new NoValidEntryError("foo"),
+            expectedError: new NoValidEntryError("foo", [
+                new TestPerformanceResourceTiming(
+                    "https://foo.com/testobject/blah",
+                    {},
+                ),
+            ]),
         },
         {
             description: "Exception thrown by observe is propagated",
@@ -165,7 +170,7 @@ describe("resourceTiming", () => {
     })
 
     test("Cover NoValidEntryError", () => {
-        const sut = new NoValidEntryError("foo")
+        const sut = new NoValidEntryError("foo", [])
         expect(sut.message).toBe(
             "At least one Resource Timing entry was found for foo but none passed validation",
         )

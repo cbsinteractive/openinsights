@@ -1,20 +1,24 @@
 import { ResourceTimingEntryValidationPredicate } from "../@types"
 
-export class PerformanceTimingObserverError extends Error {}
-
-export class PerformanceTimingObserverTimeoutError extends PerformanceTimingObserverError {
+export class PerformanceTimingObserverTimeoutError extends Error {
     constructor(name: string, timeout: number) {
         super(
             `Timeout waiting for timing data to appear for ${name} (timeout: ${timeout})`,
         )
+        Object.setPrototypeOf(this, new.target.prototype)
     }
 }
 
-export class NoValidEntryError extends PerformanceTimingObserverError {
-    constructor(name: string) {
+export class NoValidEntryError extends Error {
+    constructor(name: string, private _entries: PerformanceEntryList) {
         super(
             `At least one Resource Timing entry was found for ${name} but none passed validation`,
         )
+        Object.setPrototypeOf(this, new.target.prototype)
+    }
+
+    get entries() {
+        return this._entries
     }
 }
 
@@ -74,18 +78,20 @@ export function asyncGetEntry(
                 observer: PerformanceObserver,
             ) => {
                 if (!entry) {
-                    const namedEntries = list.getEntriesByName(name)
-                    if (namedEntries.length) {
+                    const filteredEntries = list.getEntriesByName(name)
+                    if (filteredEntries.length) {
                         window.clearTimeout(timeoutId)
                         observer.disconnect()
                         entry = getValidEntry(
                             window,
-                            namedEntries,
+                            filteredEntries,
                             isValidEntryFunc,
                         )
                         entry
                             ? resolve(entry)
-                            : reject(new NoValidEntryError(name))
+                            : reject(
+                                  new NoValidEntryError(name, filteredEntries),
+                              )
                     }
                 }
             },

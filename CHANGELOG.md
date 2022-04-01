@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [next] - TBD
 
+## [4.2.0] - 2022-04-01
+
+## Added
+
+- Add `entries` property to NoValidEntryError. Allows callers to troubleshoot validation issues.
+
+### Removed
+
+- Remove the `PerformanceTimingObserverError` common base class for errors.
+
 ## [4.1.1] - 2022-04-01
 
 ### Changed
