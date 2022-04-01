@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [next] - TBD
 
+## [4.1.1] - 2022-04-01
+
+### Changed
+
+- Bump minimist from 1.2.5 to 1.2.6 to address a vulnerability.
+
 ## [4.1.0] - 2022-03-02
 
 ### Changed
