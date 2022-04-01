@@ -1,5 +1,7 @@
 # Open Insights
 
+[![Lint](https://github.com/cbsinteractive/openinsights/actions/workflows/lint.yml/badge.svg?branch=main-viacomcbs)](https://github.com/cbsinteractive/openinsights/actions/workflows/lint.yml)
+
 Open Insights is a framework for constructing browser-based RUM clients.
 
 It allows a site owner to construct their own client using one or more "providers". The client is then self-hosted and deployed alongside the rest of their JavaScript resources.
