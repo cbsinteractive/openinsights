@@ -41,7 +41,7 @@ export abstract class Test<C extends TestConfiguration, R, D, SBR>
         /**
          * TODO
          */
-        private _beaconHandler: BeaconHandler<SBR>,
+        private _beaconHandler?: BeaconHandler<SBR>,
     ) {}
 
     get config(): C {
@@ -52,19 +52,23 @@ export abstract class Test<C extends TestConfiguration, R, D, SBR>
         return this._results
     }
 
-    get beaconHandler(): BeaconHandler<SBR> {
+    get beaconHandler() {
         return this._beaconHandler
     }
 
     /**
      * TODO
      */
-    abstract get beaconData(): D
+    get beaconData(): D {
+        throw new Error("Method not implemented")
+    }
 
     /**
      * TODO
      */
-    abstract get beaconURL(): string
+    get beaconURL(): string {
+        throw new Error("Method not implemented")
+    }
 
     get beaconHeaders(): Record<string, string> | undefined {
         return
@@ -142,20 +146,25 @@ export abstract class Test<C extends TestConfiguration, R, D, SBR>
 
     /**
      * TODO
-     * @param result
      */
-    abstract onSendBeaconResolved(result: SBR): void
+    onSendBeaconResolved(_result: SBR): void {
+        // Do nothing
+    }
 
     /**
      * TODO
-     * @param reason
      */
-    abstract onSendBeaconRejected(reason: unknown): void
+    onSendBeaconRejected(_reason: unknown): void {
+        // Do nothing
+    }
 
     /**
      * TODO
      */
     sendBeacon(): Promise<SBR> {
+        if (!this._beaconHandler) {
+            return Promise.reject("No beacon handler defined")
+        }
         return this._beaconHandler.send(
             this.beaconURL,
             this.encodeBeaconData(this.beaconData),
