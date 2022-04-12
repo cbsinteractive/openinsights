@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [next] - TBD
 
+## [4.3.0] - TBD
+
+## Changed
+
+- Make beacon handler argument optional. Callers don't need it if they intent to implement their own beaconing strategy.
+- The abstract `Test` class' `beaconData` and `beaconURL` properties were previously abstract, requiring callers to provide implementations. For callers that implement their own beaconing strategy, these are not needed. Therefore, we now provide default implementations that throw an exception if called by mistake. Similarly, the `onSendBeaconResolved` and `onSendBeaconRejected` methods now have default implementations for the caller's convenience, although these do not throw an exception since they _are_ expected to be called.
+
 ## [4.2.0] - 2022-04-01
 
 ## Added
