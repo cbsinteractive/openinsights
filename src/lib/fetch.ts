@@ -65,7 +65,7 @@ export abstract class Fetch<
         private _deps: Dependencies,
         config: C,
         testResult: R,
-        beaconHandler: BeaconHandler<SBR>,
+        beaconHandler?: BeaconHandler<SBR>,
     ) {
         super(config, testResult, beaconHandler)
     }
