@@ -155,7 +155,7 @@ export abstract class Test<C extends TestConfiguration, R, D, SBR>
      * TODO
      */
     onSendBeaconRejected(_reason: unknown): void {
-        // Do nothin
+        // Do nothing
     }
 
     /**
