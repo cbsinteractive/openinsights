@@ -21,6 +21,7 @@ export interface FetchTestResultBundle {
 }
 
 export interface Dependencies {
+    clearTimeout: (timeoutID: number) => void
     window: Window & typeof globalThis
 }
 
@@ -190,18 +191,16 @@ export abstract class Fetch<
             : {}
         // Initiate a timeout to let us abort the request if it takes too long
         if (this.config.timeout) {
-            this.setTimeoutId(
-                window.setTimeout(() => {
-                    this._fetchAbortedAt = new Date()
-                    Fetch.outputEventTimeElapsedMessage(
-                        "Fetch aborted",
-                        this._fetchStartedAt,
-                        this._fetchAbortedAt,
-                    )
-                    this._abortController.abort()
-                    this.testResults.timeoutTriggered = true
-                }, this.config.timeout),
-            )
+            this.timeoutID = window.setTimeout(() => {
+                this._fetchAbortedAt = new Date()
+                Fetch.outputEventTimeElapsedMessage(
+                    "Fetch aborted",
+                    this._fetchStartedAt,
+                    this._fetchAbortedAt,
+                )
+                this._abortController.abort()
+                this.testResults.timeoutTriggered = true
+            }, this.config.timeout)
         }
         this._fetchStartedAt = new Date()
         let savedResponse: Response
@@ -222,7 +221,8 @@ export abstract class Fetch<
                 return resp.blob()
             })
             .then(() => {
-                this.clearTimeout()
+                typeof this.timeoutID == "number" &&
+                    this._deps.clearTimeout(this.timeoutID)
                 this._blobCompletedAt = this._abortTimeoutClearedAt = new Date()
                 Fetch.outputEventTimeElapsedMessage(
                     "Abort timeout cleared",

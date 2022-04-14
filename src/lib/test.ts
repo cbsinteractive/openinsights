@@ -27,7 +27,7 @@ export abstract class Test<C extends TestConfiguration, R, D, SBR>
      * Id of the fetch timeout. This is used to cancel the timeout if the
      * test succeeds or fails with an error before the timeout elapses.
      */
-    private _timeoutId: number | undefined
+    private _timeoutID?: number
 
     constructor(
         /**
@@ -74,25 +74,15 @@ export abstract class Test<C extends TestConfiguration, R, D, SBR>
         return
     }
 
-    /**
-     * Set the id of the timeout used to trigger test failure if it takes
-     * too long.
-     * @param timeoutId The id of a timeout created by window.setTimeout
-     */
-    setTimeoutId(timeoutId: number): void {
-        if (this._timeoutId == undefined) {
-            this._timeoutId = timeoutId
-        }
+    get timeoutID(): number | undefined {
+        return this._timeoutID
     }
 
-    /**
-     * Clear an timeout when the test is considered to have succeeded or
-     * failed in a normal way. Subsequent calls have no effect.
-     */
-    clearTimeout(): void {
-        if (typeof this._timeoutId == "number") {
-            window.clearTimeout(this._timeoutId)
+    set timeoutID(value: number | undefined) {
+        if (typeof this._timeoutID === "number") {
+            throw new Error("Timeout ID already set")
         }
+        this._timeoutID = value
     }
 
     /**
