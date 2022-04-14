@@ -102,7 +102,7 @@ describe("Fetch", () => {
         beaconHandler: UnitTestBeaconHandler
     }
 
-    const DEFAULT_FETCH_CONFIG: FetchConfiguration = { type: "some type" }
+    const DEFAULT_FETCH_CONFIG: FetchConfiguration = {}
 
     describe("execute", () => {
         interface SetTimeoutOptions {
