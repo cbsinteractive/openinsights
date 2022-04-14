@@ -2,16 +2,6 @@ import { Executable } from "../@types"
 import { BeaconHandler } from "../util/beaconHandler"
 
 /**
- * An interface representing the required configuration of a RUM test.
- */
-export interface TestConfiguration {
-    /**
-     * Indicates the test type.
-     */
-    type: string
-}
-
-/**
  * An abstract class representing a RUM test. Subclasses must implement
  * abstract methods in order to define a particular type of RUM test.
  *
@@ -20,9 +10,7 @@ export interface TestConfiguration {
  * @typeParam D The type to be used for beacon data.
  * @typeParam SBR The type to be used for the send beacon result.
  */
-export abstract class Test<C extends TestConfiguration, R, D, SBR>
-    implements Executable
-{
+export abstract class Test<C, R, D, SBR> implements Executable {
     /**
      * Id of the fetch timeout. This is used to cancel the timeout if the
      * test succeeds or fails with an error before the timeout elapses.

@@ -1,11 +1,11 @@
 import { BeaconHandler } from "../util/beaconHandler"
 import { asyncGetEntry } from "./resourceTiming"
-import { Test, TestConfiguration } from "./test"
+import { Test } from "./test"
 
 /**
  * Contains common fetch configuration attributes
  */
-export interface FetchConfiguration extends TestConfiguration {
+export interface FetchConfiguration {
     /**
      * Time to wait before aborting fetch, in milliseconds.
      */
