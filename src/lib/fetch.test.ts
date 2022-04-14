@@ -114,3 +114,37 @@ describe("makeValidateResourceTimingEntryFunc", () => {
         ).toBe(false)
     })
 })
+
+describe("outputEventTimeElapsedMessage", () => {
+    test("Standard path", () => {
+        Fetch.outputEventTimeElapsedMessage(
+            "someintervalname",
+            new Date("2021-01-01T00:00:00.000Z"),
+            new Date("2021-01-01T00:00:01.000Z"),
+        )
+    })
+
+    test("Has addendum", () => {
+        Fetch.outputEventTimeElapsedMessage(
+            "someintervalname",
+            new Date("2021-01-01T00:00:00.000Z"),
+            new Date("2021-01-01T00:00:01.000Z"),
+            "someaddendum",
+        )
+    })
+
+    test("No end timestamp", () => {
+        Fetch.outputEventTimeElapsedMessage(
+            "someintervalname",
+            new Date("2021-01-01T00:00:00.000Z"),
+        )
+    })
+
+    test("No start timestamp", () => {
+        Fetch.outputEventTimeElapsedMessage(
+            "someintervalname",
+            undefined,
+            new Date("2021-01-01T00:00:01.000Z"),
+        )
+    })
+})
