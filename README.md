@@ -1,6 +1,6 @@
 # Open Insights
 
-[![Lint](https://github.com/cbsinteractive/openinsights/actions/workflows/lint.yml/badge.svg?branch=main-viacomcbs)](https://github.com/cbsinteractive/openinsights/actions/workflows/lint.yml)
+[![Lint](https://github.com/cbsinteractive/openinsights/actions/workflows/lint.yml/badge.svg?branch=main-forked)](https://github.com/cbsinteractive/openinsights/actions/workflows/lint.yml)
 
 Open Insights is a framework for constructing browser-based RUM clients.
 
@@ -12,10 +12,10 @@ See [Open Insights CBSi Demo](https://github.com/cbsinteractive/open-insights-cb
 
 ## Why Use It
 
--   Open Insights represents a collaboration by industry members to measure, and ultimately improve, the internet as a whole.
--   Open Insights is designed to work with multiple vendors.
--   Open Insights is meant to be self-hosted, unlike many vendor-centric, browser-based RUM clients.
--   Open Insights gives the site owner control over code compilation and included functionality.
+- Open Insights represents a collaboration by industry members to measure, and ultimately improve, the internet as a whole.
+- Open Insights is designed to work with multiple vendors.
+- Open Insights is meant to be self-hosted, unlike many vendor-centric, browser-based RUM clients.
+- Open Insights gives the site owner control over code compilation and included functionality.
 
 ## Development
 
@@ -58,5 +58,5 @@ npm install --global np
 Build release and publish to npm:
 
 ```shell
-np --branch main-viacomcbs
+np --branch main-forked
 ```
