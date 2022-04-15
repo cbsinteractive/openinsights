@@ -23,8 +23,17 @@ class UnitTestFetch extends Fetch<
     Foo,
     Bar
 > {
+    constructor(
+        deps: Dependencies,
+        config: FetchConfiguration,
+        testResults: UnitTestFetchTestResultBundle,
+        private _resourceURL?: string,
+    ) {
+        super(deps, config, testResults)
+    }
+
     get resourceURL(): string {
-        throw new Error("Method not implemented.")
+        return this._resourceURL || "foo"
     }
     updateFetchTestResults(
         _response: Response,
@@ -47,6 +56,16 @@ const dependencies: Dependencies = {
 
 beforeEach(() => {
     jest.resetAllMocks()
+})
+
+describe("test", () => {
+    test("Starting small", async () => {
+        const config: FetchConfiguration = deepClone(DEFAULT_FETCH_CONFIG)
+        const testResults: UnitTestFetchTestResultBundle = {}
+        const sut = new UnitTestFetch(dependencies, config, testResults)
+        // Code under test
+        await sut.test()
+    })
 })
 
 test("resourceRequestHeaders", () => {

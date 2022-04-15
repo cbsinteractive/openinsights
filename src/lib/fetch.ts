@@ -22,6 +22,7 @@ export interface FetchTestResultBundle {
 
 export interface Dependencies {
     clearTimeout: (timeoutID: number) => void
+    fetch: any
     window: Window & typeof globalThis
 }
 
@@ -118,7 +119,7 @@ export abstract class Fetch<
     test(): Promise<void> {
         const defaultTimeout = 5000
         return Promise.all([
-            this.fetchObject(),
+            this._fetchObject(),
             asyncGetEntry(
                 this._deps.window,
                 this.resourceURL,
@@ -180,7 +181,7 @@ export abstract class Fetch<
      * provides its own set of error descriptions, which presumably can change
      * at any time.
      */
-    fetchObject(): Promise<Response> {
+    private _fetchObject(): Promise<Response> {
         const init: RequestInit = {}
         if (Object.keys(this.resourceRequestHeaders).length) {
             init.headers = this.resourceRequestHeaders
@@ -204,7 +205,7 @@ export abstract class Fetch<
         }
         this._fetchStartedAt = new Date()
         let savedResponse: Response
-        return fetch(request, args)
+        return this._deps.fetch(request, args)
             .then((resp) => {
                 savedResponse = resp
                 this._blobBeganAt = new Date()
