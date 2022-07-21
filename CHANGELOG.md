@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [next] - TBD
 
+## [4.4.1] - 2022-07-21
+
+### Security
+
+- Bump terser from 5.12.1 to 5.14.2.
+
 ## [4.4.0] - 2022-04-13
 
 ### Removed
