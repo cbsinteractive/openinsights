@@ -1,4 +1,5 @@
 import { BeaconHandler } from "../util/beaconHandler"
+import { WindowUndefinedError } from "./errors"
 import { asyncGetEntry } from "./resourceTiming"
 import { Test } from "./test"
 
@@ -21,7 +22,7 @@ export interface FetchTestResultBundle {
 }
 
 export interface Dependencies {
-    window: Window & typeof globalThis
+    window: (Window & typeof globalThis) | undefined
 }
 
 /**
@@ -116,6 +117,9 @@ export abstract class Fetch<
      */
     test(): Promise<void> {
         const defaultTimeout = 5000
+        if (!this._deps.window) {
+            return this.onError(new WindowUndefinedError("Fetch.test"))
+        }
         return Promise.all([
             this.fetchObject(),
             asyncGetEntry(
