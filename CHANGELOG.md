@@ -9,8 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [4.5.0] - TBD
 
+### Changed
+
 - Enable TypeScript strict null checks.
 - Avoid fetching if caller doesn't provide Window dependency.
+
+### Security
+
+- Address security alery: [Inefficient Regular Expression Complexity in moment](https://github.com/cbsinteractive/openinsights/security/dependabot/21)
 
 ## [4.4.1] - 2022-07-21
 
