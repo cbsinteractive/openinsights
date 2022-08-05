@@ -155,6 +155,11 @@ describe("resourceTiming", () => {
                 await expect(
                     asyncGetEntry(
                         window as unknown as Window & typeof globalThis,
+                        {
+                            clearTimeout: jest.fn(),
+                            setTimeout: jest.fn(),
+                            Promise,
+                        },
                         testConfig.resourceName,
                         testConfig.timeout,
                         isValidEntryFunc,
