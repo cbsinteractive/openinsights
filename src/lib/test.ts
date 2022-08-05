@@ -1,6 +1,10 @@
 import { Executable } from "../@types"
 import { BeaconHandler } from "../util/beaconHandler"
 
+interface Dependencies {
+    clearTimeout: (timeoutID: number) => void
+}
+
 /**
  * An abstract class representing a RUM test. Subclasses must implement
  * abstract methods in order to define a particular type of RUM test.
@@ -18,6 +22,10 @@ export abstract class Test<C, R, D, SBR> implements Executable {
     private _timeoutId: number | undefined
 
     constructor(
+        /**
+         * Contextual dependencies provided by the caller
+         */
+        private _testDependencies: Dependencies,
         /**
          * The test configuration.
          */
@@ -65,7 +73,7 @@ export abstract class Test<C, R, D, SBR> implements Executable {
     /**
      * Set the id of the timeout used to trigger test failure if it takes
      * too long.
-     * @param timeoutId The id of a timeout created by window.setTimeout
+     * @param timeoutId The id of a timeout created by `setTimeout`
      */
     setTimeoutId(timeoutId: number): void {
         if (this._timeoutId == undefined) {
@@ -74,12 +82,12 @@ export abstract class Test<C, R, D, SBR> implements Executable {
     }
 
     /**
-     * Clear an timeout when the test is considered to have succeeded or
+     * Clear timeout when the test is considered to have succeeded or
      * failed in a normal way. Subsequent calls have no effect.
      */
     clearTimeout(): void {
-        if (typeof this._timeoutId == "number") {
-            window.clearTimeout(this._timeoutId)
+        if (typeof this._timeoutId === "number") {
+            this._testDependencies.clearTimeout(this._timeoutId)
         }
     }
 
@@ -89,9 +97,11 @@ export abstract class Test<C, R, D, SBR> implements Executable {
     execute(): Promise<R> {
         return this.testSetup()
             .then(() => {
+                console.log("execute calling this.test")
                 return this.test()
             })
             .then(() => {
+                console.log("execute calling this.shouldSendBeacon")
                 if (this.shouldSendBeacon()) {
                     this.sendBeacon()
                         .then((result) => {

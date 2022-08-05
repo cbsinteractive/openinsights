@@ -1,5 +1,11 @@
 import { ResourceTimingEntryValidationPredicate } from "../@types"
 
+interface Dependencies {
+    clearTimeout: (timeoutID: number) => void
+    setTimeout: (fn: TimerHandler, timeout: number) => number
+    Promise: PromiseConstructor
+}
+
 export class PerformanceTimingObserverTimeoutError extends Error {
     constructor(name: string, timeout: number) {
         super(
@@ -33,18 +39,14 @@ export class NoValidEntryError extends Error {
  * of Resource Timing entries.
  */
 function getValidEntry(
-    window: Window & typeof globalThis,
     list: PerformanceEntryList,
     isValidEntryFunc: ResourceTimingEntryValidationPredicate,
 ): PerformanceResourceTiming | undefined {
     let k = 0
     while (k < list.length) {
         const e = list[k]
-        if (
-            e instanceof window.PerformanceResourceTiming &&
-            isValidEntryFunc(e)
-        ) {
-            return e
+        if (isValidEntryFunc(e)) {
+            return e as PerformanceResourceTiming
         }
         k++
     }
@@ -66,11 +68,12 @@ function getValidEntry(
  */
 export function asyncGetEntry(
     window: Window & typeof globalThis,
+    deps: Dependencies,
     name: string,
     timeout: number,
     isValidEntryFunc: ResourceTimingEntryValidationPredicate,
 ): Promise<PerformanceResourceTiming> {
-    return new window.Promise((resolve, reject): void => {
+    return new deps.Promise((resolve, reject): void => {
         let entry: PerformanceResourceTiming | undefined
         const observer = new window.PerformanceObserver(
             (
@@ -80,13 +83,9 @@ export function asyncGetEntry(
                 if (!entry) {
                     const filteredEntries = list.getEntriesByName(name)
                     if (filteredEntries.length) {
-                        window.clearTimeout(timeoutId)
+                        deps.clearTimeout(timeoutId)
                         observer.disconnect()
-                        entry = getValidEntry(
-                            window,
-                            filteredEntries,
-                            isValidEntryFunc,
-                        )
+                        entry = getValidEntry(filteredEntries, isValidEntryFunc)
                         entry
                             ? resolve(entry)
                             : reject(
@@ -96,7 +95,7 @@ export function asyncGetEntry(
                 }
             },
         )
-        const timeoutId = window.setTimeout(() => {
+        const timeoutId = deps.setTimeout(() => {
             if (!entry) {
                 observer.disconnect()
                 reject(new PerformanceTimingObserverTimeoutError(name, timeout))

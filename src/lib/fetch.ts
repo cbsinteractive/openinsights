@@ -23,6 +23,9 @@ export interface FetchTestResultBundle {
 
 export interface Dependencies {
     window: (Window & typeof globalThis) | undefined
+    clearTimeout: (timeoutID: number) => void
+    setTimeout: (fn: TimerHandler, timeout: number) => number
+    Promise: PromiseConstructor
 }
 
 /**
@@ -63,12 +66,19 @@ export abstract class Fetch<
     private _blobCompletedAt?: Date
 
     constructor(
-        private _deps: Dependencies,
+        private _fetchDependencies: Dependencies,
         config: C,
         testResult: R,
         beaconHandler?: BeaconHandler<SBR>,
     ) {
-        super(config, testResult, beaconHandler)
+        super(
+            {
+                clearTimeout: _fetchDependencies.clearTimeout,
+            },
+            config,
+            testResult,
+            beaconHandler,
+        )
     }
 
     /**
@@ -106,10 +116,30 @@ export abstract class Fetch<
      * A provider may override the default logic used to determine a valid
      * Resource Timing entry using the optional isValidEntryFunc argument.
      */
-    makeValidateResourceTimingEntryFunc(): (
-        e: PerformanceResourceTiming,
-    ) => boolean {
-        return (e) => e.requestStart !== 0 && e.connectStart !== e.connectEnd
+    makeValidateResourceTimingEntryFunc(): (e: unknown) => boolean {
+        interface LimitedResourceTimingEntry {
+            requestStart: number
+            connectStart: number
+            connectEnd: number
+        }
+
+        function isPerformanceResourceTiming(
+            u: unknown,
+        ): u is LimitedResourceTimingEntry {
+            return (
+                typeof u === "object" &&
+                u !== null &&
+                "requestStart" in u &&
+                "connectStart" in u &&
+                "connectEnd" in u
+            )
+        }
+        // By default, we require that the connection not be reused, presumably
+        // to support use cases measuring connection setup time
+        return (e) =>
+            isPerformanceResourceTiming(e)
+                ? e.requestStart !== 0 && e.connectStart !== e.connectEnd
+                : false
     }
 
     /**
@@ -117,13 +147,18 @@ export abstract class Fetch<
      */
     test(): Promise<void> {
         const defaultTimeout = 5000
-        if (!this._deps.window) {
+        if (!this._fetchDependencies.window) {
             return this.onError(new WindowUndefinedError("Fetch.test"))
         }
         return Promise.all([
             this.fetchObject(),
             asyncGetEntry(
-                this._deps.window,
+                this._fetchDependencies.window,
+                {
+                    clearTimeout: this._fetchDependencies.clearTimeout,
+                    setTimeout: this._fetchDependencies.setTimeout,
+                    Promise: this._fetchDependencies.Promise,
+                },
                 this.resourceURL,
                 this.config.performanceTimingObserverTimeout || defaultTimeout,
                 this.makeValidateResourceTimingEntryFunc(),
@@ -195,7 +230,8 @@ export abstract class Fetch<
         // Initiate a timeout to let us abort the request if it takes too long
         if (this.config.timeout) {
             this.setTimeoutId(
-                window.setTimeout(() => {
+                this._fetchDependencies.setTimeout(() => {
+                    console.log("Inside fetch timeout handler")
                     this._fetchAbortedAt = new Date()
                     Fetch.outputEventTimeElapsedMessage(
                         "Fetch aborted",

@@ -16,9 +16,7 @@ export interface TestSetupResult {
  * {@link getValidEntry} to assess validity of an
  * entry. Providers may override the default predicate.
  */
-export type ResourceTimingEntryValidationPredicate = (
-    entry: PerformanceResourceTiming,
-) => boolean
+export type ResourceTimingEntryValidationPredicate = (entry: unknown) => boolean
 
 /**
  * Encapsulates the result of one provider's RUM session.

@@ -13,7 +13,6 @@ const asyncGetEntryMock = asyncGetEntry as jest.Mock<
 beforeEach(() => {
     fetchMock.resetMocks()
     asyncGetEntryMock.mockReset()
-    jest.useFakeTimers()
 })
 
 describe("Fetch", () => {
@@ -107,6 +106,7 @@ describe("Fetch", () => {
     describe("execute", () => {
         interface SetTimeoutOptions {
             timeout: number
+            resultTimeoutID: number
         }
 
         interface TestConfig extends FetchTestConfig {
@@ -198,8 +198,18 @@ describe("Fetch", () => {
 
         tests.forEach((i) => {
             test(i.description, async () => {
+                const clearTimeout = jest.fn()
+                const setTimeout = jest.fn()
+                if (i.setTimeoutOptions) {
+                    setTimeout.mockReturnValueOnce(
+                        i.setTimeoutOptions.resultTimeoutID,
+                    )
+                }
                 const sut = new UnitTestFetch(
                     {
+                        clearTimeout,
+                        setTimeout,
+                        Promise,
                         window: i.window as Window & typeof globalThis,
                     },
                     i.fetchConfig,
@@ -230,16 +240,16 @@ describe("Fetch", () => {
 
                 // Spies used to verify parts of the fetch timeout mechanism
                 const setTimeoutId = jest.spyOn(sut, "setTimeoutId")
-                const setTimeout = jest.spyOn(window, "setTimeout")
 
                 // Code under test
                 const result = await sut.execute()
-                jest.runAllTimers()
 
                 // Verify
                 expect(result).toStrictEqual(i.expectedResult)
                 if (i.setTimeoutOptions) {
-                    expect(setTimeoutId).toHaveBeenCalled()
+                    expect(setTimeoutId).toHaveBeenCalledWith(
+                        i.setTimeoutOptions.resultTimeoutID,
+                    )
                     expect(setTimeout).toHaveBeenLastCalledWith(
                         expect.any(Function),
                         i.setTimeoutOptions.timeout,
@@ -301,6 +311,9 @@ describe("Fetch", () => {
             test(i.description, () => {
                 const sut = new UnitTestFetch(
                     {
+                        clearTimeout: jest.fn(),
+                        setTimeout: jest.fn(),
+                        Promise,
                         window: i.window as Window & typeof globalThis,
                     },
                     i.fetchConfig,
