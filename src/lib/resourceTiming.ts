@@ -2,8 +2,11 @@ import { ResourceTimingEntryValidationPredicate } from "../@types"
 
 interface Dependencies {
     clearTimeout: (timeoutID: number) => void
+    makePerformanceObserver: (
+        callback: PerformanceObserverCallback,
+    ) => PerformanceObserver
+    makePromise: (executor: Function) => Promise<any>
     setTimeout: (fn: TimerHandler, timeout: number) => number
-    Promise: PromiseConstructor
 }
 
 export class PerformanceTimingObserverTimeoutError extends Error {
@@ -67,48 +70,63 @@ function getValidEntry(
  * Resource Timing entry.
  */
 export function asyncGetEntry(
-    window: Window & typeof globalThis,
     deps: Dependencies,
     name: string,
     timeout: number,
     isValidEntryFunc: ResourceTimingEntryValidationPredicate,
 ): Promise<PerformanceResourceTiming> {
-    return new deps.Promise((resolve, reject): void => {
-        let entry: PerformanceResourceTiming | undefined
-        const observer = new window.PerformanceObserver(
-            (
-                list: PerformanceObserverEntryList,
-                observer: PerformanceObserver,
-            ) => {
-                if (!entry) {
-                    const filteredEntries = list.getEntriesByName(name)
-                    if (filteredEntries.length) {
-                        deps.clearTimeout(timeoutId)
-                        observer.disconnect()
-                        entry = getValidEntry(filteredEntries, isValidEntryFunc)
-                        entry
-                            ? resolve(entry)
-                            : reject(
-                                  new NoValidEntryError(name, filteredEntries),
-                              )
+    return deps.makePromise(
+        (
+            resolve: (entry: PerformanceResourceTiming) => void,
+            reject: (e: unknown) => void,
+        ): void => {
+            let entry: PerformanceResourceTiming | undefined
+            const observer = deps.makePerformanceObserver(
+                (
+                    list: PerformanceObserverEntryList,
+                    observer: PerformanceObserver,
+                ) => {
+                    if (!entry) {
+                        const filteredEntries = list.getEntriesByName(name)
+                        if (filteredEntries.length) {
+                            deps.clearTimeout(timeoutId)
+                            observer.disconnect()
+                            entry = getValidEntry(
+                                filteredEntries,
+                                isValidEntryFunc,
+                            )
+                            entry
+                                ? resolve(entry)
+                                : reject(
+                                      new NoValidEntryError(
+                                          name,
+                                          filteredEntries,
+                                      ),
+                                  )
+                        }
                     }
+                },
+            )
+            const timeoutId = deps.setTimeout(() => {
+                if (!entry) {
+                    observer.disconnect()
+                    reject(
+                        new PerformanceTimingObserverTimeoutError(
+                            name,
+                            timeout,
+                        ),
+                    )
                 }
-            },
-        )
-        const timeoutId = deps.setTimeout(() => {
-            if (!entry) {
-                observer.disconnect()
-                reject(new PerformanceTimingObserverTimeoutError(name, timeout))
+            }, timeout)
+            try {
+                observer.observe({
+                    type: "resource",
+                    // Allows the observer access to entries buffered before it was created
+                    buffered: true,
+                })
+            } catch (e) {
+                reject(e)
             }
-        }, timeout)
-        try {
-            observer.observe({
-                type: "resource",
-                // Allows the observer access to entries buffered before it was created
-                buffered: true,
-            })
-        } catch (e) {
-            reject(e)
-        }
-    })
+        },
+    )
 }

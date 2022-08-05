@@ -16,7 +16,6 @@ export abstract class ProviderBase<SC> implements Provider {
          * This can be used for logging purposes.
          */
         private _name: string,
-        private _window: Window & typeof globalThis,
     ) {}
 
     /**
@@ -44,43 +43,8 @@ export abstract class ProviderBase<SC> implements Provider {
 
     /**
      * See {@link Provider.shouldRun}.
-     * @remarks Providers that override `shouldRun` to perform additional
-     * validation should call this implementation as well,
-     * e.g. `super.shouldRun()`.
      */
-    shouldRun(): boolean {
-        function isValidResourceTimingObject(
-            obj: PerformanceEntry,
-        ): obj is PerformanceResourceTiming {
-            const temp = obj as PerformanceResourceTiming
-            return (
-                temp.fetchStart !== undefined &&
-                temp.requestStart !== undefined &&
-                temp.responseStart !== undefined &&
-                temp.responseEnd !== undefined
-            )
-        }
-        if (
-            !this._window.performance ||
-            typeof this._window.performance.getEntriesByType !== "function" ||
-            !this._window.Promise ||
-            !this._window.Promise.allSettled ||
-            !this._window.fetch ||
-            !this._window.AbortController ||
-            !this._window.PerformanceObserver
-        ) {
-            return false
-        }
-        const entries = this._window.performance.getEntriesByType("resource")
-        if (!entries.length) {
-            // Can't make a safe determination
-            return false
-        }
-        if (!isValidResourceTimingObject(entries[0])) {
-            return false
-        }
-        return true
-    }
+    abstract shouldRun(): boolean
 
     /**
      * See {@link Provider.setSessionConfig}.

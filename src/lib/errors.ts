@@ -19,10 +19,3 @@ export enum KnownErrors {
      */
     TestExecution,
 }
-
-export class WindowUndefinedError extends Error {
-    constructor(label: string) {
-        super(`Window undefined (${label})`)
-        Object.setPrototypeOf(this, new.target.prototype)
-    }
-}

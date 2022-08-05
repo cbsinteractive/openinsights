@@ -1,5 +1,4 @@
 import { BeaconHandler } from "../util/beaconHandler"
-import { WindowUndefinedError } from "./errors"
 import { asyncGetEntry } from "./resourceTiming"
 import { Test } from "./test"
 
@@ -22,10 +21,12 @@ export interface FetchTestResultBundle {
 }
 
 export interface Dependencies {
-    window: (Window & typeof globalThis) | undefined
     clearTimeout: (timeoutID: number) => void
+    makePerformanceObserver: (
+        callbck: PerformanceObserverCallback,
+    ) => PerformanceObserver
+    makePromise: (executor: Function) => Promise<any>
     setTimeout: (fn: TimerHandler, timeout: number) => number
-    Promise: PromiseConstructor
 }
 
 /**
@@ -147,17 +148,15 @@ export abstract class Fetch<
      */
     test(): Promise<void> {
         const defaultTimeout = 5000
-        if (!this._fetchDependencies.window) {
-            return this.onError(new WindowUndefinedError("Fetch.test"))
-        }
         return Promise.all([
             this.fetchObject(),
             asyncGetEntry(
-                this._fetchDependencies.window,
                 {
                     clearTimeout: this._fetchDependencies.clearTimeout,
+                    makePerformanceObserver:
+                        this._fetchDependencies.makePerformanceObserver,
+                    makePromise: this._fetchDependencies.makePromise,
                     setTimeout: this._fetchDependencies.setTimeout,
-                    Promise: this._fetchDependencies.Promise,
                 },
                 this.resourceURL,
                 this.config.performanceTimingObserverTimeout || defaultTimeout,

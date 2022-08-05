@@ -1,1 +1,1 @@
-require('jest-fetch-mock').enableMocks()
+// Not used
