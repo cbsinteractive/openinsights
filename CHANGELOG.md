@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [next] - TBD
 
+## [4.5.0] - TBD
+
+- Enable TypeScript strict null checks.
+- Avoid fetching if caller doesn't provide Window dependency.
+
 ## [4.4.1] - 2022-07-21
 
 ### Security
