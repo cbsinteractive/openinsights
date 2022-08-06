@@ -1,11 +1,14 @@
-import { ResourceTimingEntryValidationPredicate } from "../@types"
+import {
+    PromiseExecutor,
+    ResourceTimingEntryValidationPredicate,
+} from "../@types"
 
 interface Dependencies {
     clearTimeout: (timeoutID: number) => void
     makePerformanceObserver: (
         callback: PerformanceObserverCallback,
     ) => PerformanceObserver
-    makePromise: (executor: Function) => Promise<any>
+    makePromise: (executor: PromiseExecutor) => Promise<unknown>
     setTimeout: (fn: TimerHandler, timeout: number) => number
 }
 
@@ -75,58 +78,46 @@ export function asyncGetEntry(
     timeout: number,
     isValidEntryFunc: ResourceTimingEntryValidationPredicate,
 ): Promise<PerformanceResourceTiming> {
-    return deps.makePromise(
-        (
-            resolve: (entry: PerformanceResourceTiming) => void,
-            reject: (e: unknown) => void,
-        ): void => {
-            let entry: PerformanceResourceTiming | undefined
-            const observer = deps.makePerformanceObserver(
-                (
-                    list: PerformanceObserverEntryList,
-                    observer: PerformanceObserver,
-                ) => {
-                    if (!entry) {
-                        const filteredEntries = list.getEntriesByName(name)
-                        if (filteredEntries.length) {
-                            deps.clearTimeout(timeoutId)
-                            observer.disconnect()
-                            entry = getValidEntry(
-                                filteredEntries,
-                                isValidEntryFunc,
-                            )
-                            entry
-                                ? resolve(entry)
-                                : reject(
-                                      new NoValidEntryError(
-                                          name,
-                                          filteredEntries,
-                                      ),
-                                  )
-                        }
-                    }
-                },
-            )
-            const timeoutId = deps.setTimeout(() => {
+    const executor: PromiseExecutor = (
+        resolve: (entry: PerformanceResourceTiming) => void,
+        reject: (e: unknown) => void,
+    ) => {
+        let entry: PerformanceResourceTiming | undefined
+        const observer = deps.makePerformanceObserver(
+            (
+                list: PerformanceObserverEntryList,
+                observer: PerformanceObserver,
+            ) => {
                 if (!entry) {
-                    observer.disconnect()
-                    reject(
-                        new PerformanceTimingObserverTimeoutError(
-                            name,
-                            timeout,
-                        ),
-                    )
+                    const filteredEntries = list.getEntriesByName(name)
+                    if (filteredEntries.length) {
+                        deps.clearTimeout(timeoutId)
+                        observer.disconnect()
+                        entry = getValidEntry(filteredEntries, isValidEntryFunc)
+                        entry
+                            ? resolve(entry)
+                            : reject(
+                                  new NoValidEntryError(name, filteredEntries),
+                              )
+                    }
                 }
-            }, timeout)
-            try {
-                observer.observe({
-                    type: "resource",
-                    // Allows the observer access to entries buffered before it was created
-                    buffered: true,
-                })
-            } catch (e) {
-                reject(e)
+            },
+        )
+        const timeoutId = deps.setTimeout(() => {
+            if (!entry) {
+                observer.disconnect()
+                reject(new PerformanceTimingObserverTimeoutError(name, timeout))
             }
-        },
-    )
+        }, timeout)
+        try {
+            observer.observe({
+                type: "resource",
+                // Allows the observer access to entries buffered before it was created
+                buffered: true,
+            })
+        } catch (e) {
+            reject(e)
+        }
+    }
+    return deps.makePromise(executor) as Promise<PerformanceResourceTiming>
 }

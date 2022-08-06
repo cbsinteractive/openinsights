@@ -66,16 +66,16 @@ export class TestPerformanceResourceTiming
         )
     }
 
-    entryType: string = "resource"
+    entryType = "resource"
     name: string
     transferSize: number
     encodedBodySize: number
     decodedBodySize: number
-    initiatorType: string = "unused"
-    nextHopProtocol: string = "unused"
+    initiatorType = "unused"
+    nextHopProtocol = "unused"
     startTime: number
     duration: number
-    workerStart: number = 0 // unused
+    workerStart = 0 // unused
     redirectStart: number
     redirectEnd: number
     fetchStart: number

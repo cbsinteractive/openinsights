@@ -56,7 +56,7 @@ export abstract class ProviderBase<SC> implements Provider {
     /**
      * See {@link Provider.sessionConfig}.
      */
-    get sessionConfig(): SC {
-        return this._sessionConfig!
+    get sessionConfig(): SC | undefined {
+        return this._sessionConfig
     }
 }

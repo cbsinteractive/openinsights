@@ -1,3 +1,4 @@
+import { PromiseExecutor } from "../@types"
 import { BeaconHandler } from "../util/beaconHandler"
 import { asyncGetEntry } from "./resourceTiming"
 import { Test } from "./test"
@@ -25,7 +26,7 @@ export interface Dependencies {
     makePerformanceObserver: (
         callbck: PerformanceObserverCallback,
     ) => PerformanceObserver
-    makePromise: (executor: Function) => Promise<any>
+    makePromise: (executor: PromiseExecutor) => Promise<unknown>
     setTimeout: (fn: TimerHandler, timeout: number) => number
 }
 

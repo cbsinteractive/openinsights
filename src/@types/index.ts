@@ -1,5 +1,11 @@
 export { KnownErrors } from "../lib/errors"
 
+export type PromiseExecutor = (
+    resolve: (value: unknown) => void,
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    reject: (reason?: any) => void,
+) => void
+
 /**
  * An interface representing the result of a test's setup activity.
  */
@@ -39,7 +45,7 @@ export interface SessionResult {
  * Edition: Draft Community Group Report 20 February 2019
  * See http://wicg.github.io/netinfo/#navigatornetworkinformation-interface
  */
-export declare interface Navigator extends NavigatorNetworkInformation {}
+export type Navigator = NavigatorNetworkInformation
 
 /**
  * See http://wicg.github.io/netinfo/#navigatornetworkinformation-interface
@@ -117,7 +123,7 @@ export interface Provider {
      * The provider specfic session configuration object obtained from calling
      * {@link Provider.fetchSessionConfig}.
      */
-    sessionConfig?: unknown
+    sessionConfig: unknown | undefined
 
     /**
      * Called within {@link start} to sets the provider's session configuration
