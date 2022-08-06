@@ -16,7 +16,6 @@ module.exports = {
         ],
         "@typescript-eslint/no-empty-function": "off",
         "prettier/prettier": "warn",
-        "no-unused-vars": "warn",
         "no-console": "warn",
         "no-debugger": "warn",
     },
