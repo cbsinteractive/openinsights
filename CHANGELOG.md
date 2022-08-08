@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [next] - TBD
 
+### Changed
+
+- Callers should call `setSessionConfig` on their provider before attempting to access its `sessionConfig` property. This avoids their having to check the return value everywhere (lint fix).
+
 ## [4.4.1] - 2022-07-21
 
 ### Security

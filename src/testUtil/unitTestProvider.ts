@@ -1,7 +1,7 @@
 import { Executable } from "../@types"
 import { ProviderBase } from "../lib/providerBase"
 
-export type UnitTestSessionConfig = {}
+export type UnitTestSessionConfig = Record<string, unknown>
 
 export type UnitTestProviderMocks = {
     shouldRun?: () => boolean

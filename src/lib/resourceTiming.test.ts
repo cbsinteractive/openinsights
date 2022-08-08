@@ -97,12 +97,14 @@ describe("resourceTiming", () => {
                     throw new Error("Function not implemented.")
                 },
             }
+            /* eslint-disable @typescript-eslint/no-explicit-any */
             testConfig.getEntriesByNameResults &&
                 testConfig.getEntriesByNameResults.forEach((i) =>
                     (
                         list.getEntriesByName as jest.Mock<any, any>
                     ).mockReturnValueOnce(i),
                 )
+            /* eslint-enable @typescript-eslint/no-explicit-any */
             const window = {
                 Promise: Promise,
                 PerformanceObserver: class TestPerformanceObserver

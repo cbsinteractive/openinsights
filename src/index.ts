@@ -34,19 +34,17 @@
 
 // Types
 export * from "./@types"
-
 // Init
 export { default as init } from "./init"
-export { default as ClientSettingsBuilder } from "./util/clientSettingsBuilder"
-
+export { Fetch } from "./lib/fetch"
 // Libs
 export type { FetchConfiguration, FetchTestResultBundle } from "./lib/fetch"
-export { Fetch } from "./lib/fetch"
 export { default as getNetworkInformation } from "./lib/getNetworkInformation"
 export { ProviderBase } from "./lib/providerBase"
 export * from "./lib/resourceTiming"
 export { Test } from "./lib/test"
-export { getClientInfo } from "./util/clientInfo"
 export { BeaconHandler } from "./util/beaconHandler"
-export { GetBeaconHandler } from "./util/getBeaconHandler"
+export { getClientInfo } from "./util/clientInfo"
 export type { ClientInfo } from "./util/clientInfo"
+export { default as ClientSettingsBuilder } from "./util/clientSettingsBuilder"
+export { GetBeaconHandler } from "./util/getBeaconHandler"

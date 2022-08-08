@@ -16,8 +16,8 @@
     "build": "tsc --build",
     "build:doc": "rimraf doc && typedoc src/index.ts",
     "build:release": "rimraf dist && rollup -c",
-    "lint": "tsc && eslint --fix 'src/**'",
-    "lint-check-only": "tsc && eslint 'src/**'",
+    "lint": "tsc --noEmit && eslint --fix 'src/**'",
+    "lint-check-only": "tsc --noEmit && eslint 'src/**'",
     "test": "jest --coverage",
     "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
     "prepublishOnly": "npm run build:release"
@@ -34,6 +34,7 @@
     "jest": "^27.4.4",
     "jest-fetch-mock": "^3.0.3",
     "prettier": "^2.0.5",
+    "prettier-plugin-organize-imports": "^3.0.3",
     "rimraf": "^3.0.2",
     "rollup": "^2.39.1",
     "rollup-plugin-license": "^2.2.0",

@@ -41,7 +41,7 @@ export interface SessionResult {
  * Edition: Draft Community Group Report 20 February 2019
  * See http://wicg.github.io/netinfo/#navigatornetworkinformation-interface
  */
-export declare interface Navigator extends NavigatorNetworkInformation {}
+export type Navigator = NavigatorNetworkInformation
 
 /**
  * See http://wicg.github.io/netinfo/#navigatornetworkinformation-interface

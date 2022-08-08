@@ -93,6 +93,10 @@ export abstract class ProviderBase<SC> implements Provider {
      * See {@link Provider.sessionConfig}.
      */
     get sessionConfig(): SC {
-        return this._sessionConfig!
+        if (!this._sessionConfig) {
+            // Caller should have set this before
+            throw new Error("Session config not set")
+        }
+        return this._sessionConfig
     }
 }
