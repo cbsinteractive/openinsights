@@ -16,6 +16,7 @@
     "build": "tsc --build",
     "build:doc": "rimraf doc && typedoc src/index.ts",
     "build:release": "rimraf dist && rollup -c",
+    "formatcode": "prettier --write .",
     "lint": "tsc && eslint --fix 'src/**'",
     "lint-check-only": "tsc && eslint 'src/**'",
     "test": "jest --coverage",
