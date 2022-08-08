@@ -1,0 +1,4 @@
+package-lock.json
+doc/
+dist/
+coverage/
