@@ -29,6 +29,12 @@ Within the project root directory:
 npm install
 ```
 
+### Format Code Files
+
+```shell
+npm run formatcode
+```
+
 ### Run Linter
 
 ```shell
