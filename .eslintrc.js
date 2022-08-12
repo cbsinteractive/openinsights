@@ -6,15 +6,17 @@ module.exports = {
         sourceType: "module",
     },
     plugins: ["prettier", "@typescript-eslint"],
-    extends: ["plugin:prettier/recommended"],
+    extends: ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
     rules: {
-        "prettier/prettier": "error",
-        "no-unused-vars": "off",
         "@typescript-eslint/no-unused-vars": [
             "error",
             {
                 argsIgnorePattern: "^_",
             },
         ],
+        "@typescript-eslint/no-empty-function": "off",
+        "prettier/prettier": "warn",
+        "no-console": "warn",
+        "no-debugger": "warn",
     },
 }

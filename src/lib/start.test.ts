@@ -42,8 +42,10 @@ describe("startLater", () => {
                     shouldRun: jest.fn().mockReturnValue(true),
                     fetchSessionConfig: jest.fn<
                         Promise<UnitTestSessionConfig>,
+                        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                         any
                     >(() => Promise.resolve({})),
+                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                     expandTasks: jest.fn<Array<Executable>, any>(() => {
                         return [
                             {
