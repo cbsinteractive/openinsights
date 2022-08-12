@@ -7,12 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [next] - TBD
 
-## [5.0.0] - 2022-08-12
-
-### Security
-
-- Removing development dependency on Rollup.js. This necessitates bumping the major version, since we will only be supporting source distributions.
-
 ## [4.4.1] - 2022-07-21
 
 ### Security
