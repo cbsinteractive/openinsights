@@ -49,7 +49,6 @@ describe("init and ProviderBase", () => {
         test(i.description, () => {
             const settingsBuilder = new ClientSettingsBuilder()
             i.providers.forEach((i) => {
-                expect(i.name).toBe("Unit Testing")
                 settingsBuilder.addProvider(i)
             })
             if (typeof i.preConfigStartDelay == "number") {

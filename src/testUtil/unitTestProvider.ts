@@ -11,7 +11,7 @@ export type UnitTestProviderMocks = {
 
 export class UnitTestProvider extends ProviderBase<UnitTestSessionConfig> {
     constructor(mocks: UnitTestProviderMocks = {}) {
-        super("Unit Testing", {} as Window & typeof globalThis)
+        super()
         if (mocks.shouldRun) {
             this.shouldRun = mocks.shouldRun
         }
@@ -26,6 +26,9 @@ export class UnitTestProvider extends ProviderBase<UnitTestSessionConfig> {
         throw new Error("Method not implemented.")
     }
     expandTasks(): Executable[] {
+        throw new Error("Method not implemented.")
+    }
+    shouldRun(): boolean {
         throw new Error("Method not implemented.")
     }
 }

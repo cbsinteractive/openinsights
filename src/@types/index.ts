@@ -111,11 +111,6 @@ export interface Executable {
  */
 export interface Provider {
     /**
-     * An attribute that can be used for logging purposes.
-     */
-    name: string
-
-    /**
      * The provider specfic session configuration object obtained from calling
      * {@link Provider.fetchSessionConfig}.
      */
