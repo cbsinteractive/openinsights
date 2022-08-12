@@ -65,7 +65,6 @@ function getValidEntry(
  * Resource Timing entry.
  */
 export function asyncGetEntry(
-    window: Window & typeof globalThis,
     name: string,
     timeout: number,
     isValidEntryFunc: ResourceTimingEntryValidationPredicate,
