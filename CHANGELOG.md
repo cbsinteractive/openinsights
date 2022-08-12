@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [next] - TBD
 
+## [4.4.2] - 2022-08-12
+
+## Security
+
+- Update rollup.js to address a vulnerability.
+
 ## [4.4.1] - 2022-07-21
 
 ### Security
