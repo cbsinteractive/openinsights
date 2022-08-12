@@ -17,7 +17,7 @@ export interface TestSetupResult {
  * entry. Providers may override the default predicate.
  */
 export type ResourceTimingEntryValidationPredicate = (
-    entry: PerformanceResourceTiming,
+    entry: PerformanceEntry,
 ) => boolean
 
 /**

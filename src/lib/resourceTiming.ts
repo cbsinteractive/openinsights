@@ -22,34 +22,29 @@ export class NoValidEntryError extends Error {
     }
 }
 
-/**
- * Given a list of Resource Timing entries, return the first one that matches
- * a set of rules.
- * @remarks
- * Providers may override the default rules.
- * See {@link Fetch.constructor}.
- * @param list The list of entries to test.
- * @param isValidEntryFunc A predicate function used to determine the validity
- * of Resource Timing entries.
- */
-function getValidEntry(
-    window: Window & typeof globalThis,
-    list: PerformanceEntryList,
-    isValidEntryFunc: ResourceTimingEntryValidationPredicate,
-): PerformanceResourceTiming | undefined {
-    let k = 0
-    while (k < list.length) {
-        const e = list[k]
-        if (
-            e instanceof window.PerformanceResourceTiming &&
-            isValidEntryFunc(e)
-        ) {
-            return e
-        }
-        k++
-    }
-    return undefined
-}
+// /**
+//  * Given a list of Resource Timing entries, return the first one that matches
+//  * a set of rules.
+//  * @remarks
+//  * Providers may override the default rules.
+//  * See {@link Fetch.constructor}.
+//  * @param list The list of entries to test.
+//  * @param isValidEntryFunc A predicate function used to determine the validity
+//  * of Resource Timing entries.
+//  */
+// function getValidEntry(
+//     list: PerformanceEntryList,
+//     isValidEntryFunc: ResourceTimingEntryValidationPredicate,
+// ): PerformanceEntry | undefined {
+//     let k = 0
+//     while (k < list.length) {
+//         const e = list[k]
+//         if (isValidEntryFunc(e)) {
+//             return e
+//         }
+//         k++
+//     }
+// }
 
 /**
  * Asyncronusly gets a Resource Timing entry from the performance timeline
@@ -65,50 +60,51 @@ function getValidEntry(
  * Resource Timing entry.
  */
 export function asyncGetEntry(
-    name: string,
-    timeout: number,
-    isValidEntryFunc: ResourceTimingEntryValidationPredicate,
+    _name: string,
+    _timeout: number,
+    _isValidEntryFunc: ResourceTimingEntryValidationPredicate,
 ): Promise<PerformanceResourceTiming> {
-    return new window.Promise((resolve, reject): void => {
-        let entry: PerformanceResourceTiming | undefined
-        const observer = new window.PerformanceObserver(
-            (
-                list: PerformanceObserverEntryList,
-                observer: PerformanceObserver,
-            ) => {
-                if (!entry) {
-                    const filteredEntries = list.getEntriesByName(name)
-                    if (filteredEntries.length) {
-                        window.clearTimeout(timeoutId)
-                        observer.disconnect()
-                        entry = getValidEntry(
-                            window,
-                            filteredEntries,
-                            isValidEntryFunc,
-                        )
-                        entry
-                            ? resolve(entry)
-                            : reject(
-                                  new NoValidEntryError(name, filteredEntries),
-                              )
-                    }
-                }
-            },
-        )
-        const timeoutId = window.setTimeout(() => {
-            if (!entry) {
-                observer.disconnect()
-                reject(new PerformanceTimingObserverTimeoutError(name, timeout))
-            }
-        }, timeout)
-        try {
-            observer.observe({
-                type: "resource",
-                // Allows the observer access to entries buffered before it was created
-                buffered: true,
-            })
-        } catch (e) {
-            reject(e)
-        }
-    })
+    throw new Error("asyncGetEntry not implemented")
+    // return new window.Promise((resolve, reject): void => {
+    //     let entry: PerformanceResourceTiming | undefined
+    //     const observer = new window.PerformanceObserver(
+    //         (
+    //             list: PerformanceObserverEntryList,
+    //             observer: PerformanceObserver,
+    //         ) => {
+    //             if (!entry) {
+    //                 const filteredEntries = list.getEntriesByName(name)
+    //                 if (filteredEntries.length) {
+    //                     window.clearTimeout(timeoutId)
+    //                     observer.disconnect()
+    //                     entry = getValidEntry(
+    //                         window,
+    //                         filteredEntries,
+    //                         isValidEntryFunc,
+    //                     )
+    //                     entry
+    //                         ? resolve(entry)
+    //                         : reject(
+    //                               new NoValidEntryError(name, filteredEntries),
+    //                           )
+    //                 }
+    //             }
+    //         },
+    //     )
+    //     const timeoutId = window.setTimeout(() => {
+    //         if (!entry) {
+    //             observer.disconnect()
+    //             reject(new PerformanceTimingObserverTimeoutError(name, timeout))
+    //         }
+    //     }, timeout)
+    //     try {
+    //         observer.observe({
+    //             type: "resource",
+    //             // Allows the observer access to entries buffered before it was created
+    //             buffered: true,
+    //         })
+    //     } catch (e) {
+    //         reject(e)
+    //     }
+    // })
 }

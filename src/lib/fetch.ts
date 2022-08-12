@@ -20,6 +20,10 @@ export interface FetchTestResultBundle {
     timeoutTriggered?: boolean
 }
 
+interface Dependencies {
+    setTimeout: (fn: TimerHandler, timeout: number) => number
+}
+
 /**
  * Class representing a basic "fetch" test. It fetches a supplied resource from the
  * network and collects the corresponding entry from the Performance timeline.
@@ -57,7 +61,12 @@ export abstract class Fetch<
     private _blobBeganAt?: Date
     private _blobCompletedAt?: Date
 
-    constructor(config: C, testResult: R, beaconHandler?: BeaconHandler<SBR>) {
+    constructor(
+        private _fetchDependencies: Dependencies,
+        config: C,
+        testResult: R,
+        beaconHandler?: BeaconHandler<SBR>,
+    ) {
         super(config, testResult, beaconHandler)
     }
 
@@ -93,14 +102,12 @@ export abstract class Fetch<
     }
 
     /**
-     * A provider may override the default logic used to determine a valid
-     * Resource Timing entry using the optional isValidEntryFunc argument.
+     * Used by implementers to supply logic for determining if a Resource Timing
+     * entry is valid.
      */
-    makeValidateResourceTimingEntryFunc(): (
-        e: PerformanceResourceTiming,
-    ) => boolean {
-        return (e) => e.requestStart !== 0 && e.connectStart !== e.connectEnd
-    }
+    abstract makeValidateResourceTimingEntryFunc(): (
+        e: PerformanceEntry,
+    ) => boolean
 
     /**
      * See {@link Test.test}.
@@ -181,7 +188,7 @@ export abstract class Fetch<
         // Initiate a timeout to let us abort the request if it takes too long
         if (this.config.timeout) {
             this.setTimeoutId(
-                window.setTimeout(() => {
+                this._fetchDependencies.setTimeout(() => {
                     this._fetchAbortedAt = new Date()
                     Fetch.outputEventTimeElapsedMessage(
                         "Fetch aborted",
