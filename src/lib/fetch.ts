@@ -9,18 +9,19 @@ export interface FetchConfiguration {
     /**
      * Time to wait before aborting fetch, in milliseconds.
      */
-    timeout?: number
+    timeout: number
     /**
      * PerformanceObserver timeout in milliseconds.
      */
-    performanceTimingObserverTimeout?: number
+    performanceTimingObserverTimeout: number
 }
 
 export interface FetchTestResultBundle {
-    timeoutTriggered?: boolean
+    timeoutTriggered: boolean
 }
 
 interface Dependencies {
+    clearTimeout: (timeoutID: number) => void
     setTimeout: (fn: TimerHandler, timeout: number) => number
 }
 
@@ -44,22 +45,16 @@ export abstract class Fetch<
     SBR,
 > extends Test<C, R, D, SBR> {
     /**
-     * An AbortController instance used to abort fetch requests that do not
-     * complete in a timely manner.
-     */
-    private _abortController: AbortController = new AbortController()
-
-    /**
      * Diagnostic timestamps to help grok issues related to the asynchronous
      * nature of this workflow.
      */
-    private _fetchStartedAt?: Date
-    private _abortTimeoutClearedAt?: Date
-    private _errorCaughtAt?: Date
-    private _fetchAbortedAt?: Date
-    private _fetchCompletedAt?: Date
-    private _blobBeganAt?: Date
-    private _blobCompletedAt?: Date
+    // private _fetchStartedAt?: Date
+    // private _abortTimeoutClearedAt?: Date
+    // private _errorCaughtAt?: Date
+    // private _fetchAbortedAt?: Date
+    // private _fetchCompletedAt?: Date
+    // private _blobBeganAt?: Date
+    // private _blobCompletedAt?: Date
 
     constructor(
         private _fetchDependencies: Dependencies,
@@ -127,22 +122,9 @@ export abstract class Fetch<
                 // although the HTTP status may indicate an error condition.
                 // Providers should be aware of this and check `response.status`
                 // if it matters to them.
-                this._fetchCompletedAt = new Date()
-                Fetch.outputEventTimeElapsedMessage(
-                    "Fetch completed",
-                    this._fetchStartedAt,
-                    this._fetchCompletedAt,
-                )
                 return this.updateFetchTestResults(response, entry)
             })
             .catch((reason) => {
-                this._errorCaughtAt = new Date()
-                Fetch.outputEventTimeElapsedMessage(
-                    "Error caught",
-                    this._fetchStartedAt,
-                    this._errorCaughtAt,
-                    reason,
-                )
                 return this.onError(reason)
             })
     }
@@ -177,84 +159,82 @@ export abstract class Fetch<
      * at any time.
      */
     fetchObject(): Promise<Response> {
-        const init: RequestInit = {}
-        if (Object.keys(this.resourceRequestHeaders).length) {
-            init.headers = this.resourceRequestHeaders
-        }
-        const request = new Request(this.resourceURL, init)
-        const args = this.config.timeout
-            ? { signal: this._abortController.signal }
-            : {}
-        // Initiate a timeout to let us abort the request if it takes too long
-        if (this.config.timeout) {
-            this.setTimeoutId(
-                this._fetchDependencies.setTimeout(() => {
-                    this._fetchAbortedAt = new Date()
-                    Fetch.outputEventTimeElapsedMessage(
-                        "Fetch aborted",
-                        this._fetchStartedAt,
-                        this._fetchAbortedAt,
-                    )
-                    this._abortController.abort()
-                    this.testResults.timeoutTriggered = true
-                }, this.config.timeout),
-            )
-        }
-        this._fetchStartedAt = new Date()
+        const abortController = new AbortController()
+        const timeoutID = this._fetchDependencies.setTimeout(() => {
+            abortController.abort()
+            console.log("Fetch aborted")
+            this.testResults.timeoutTriggered = true
+        }, this.config.timeout)
         let savedResponse: Response
-        return fetch(request, args)
-            .then((resp) => {
-                savedResponse = resp
-                this._blobBeganAt = new Date()
-                Fetch.outputEventTimeElapsedMessage(
-                    "Blob began",
-                    this._fetchStartedAt,
-                    this._blobBeganAt,
-                )
-                if (!resp.ok) {
-                    throw new Error(
-                        `Network response status not okay: ${resp.status}`,
-                    )
-                }
-                return resp.blob()
+        return fetch(this.resourceURL, {
+            method: "GET",
+            // explicitly prevent request from outliving the page
+            keepalive: false,
+            signal: abortController.signal,
+            headers: { ...this.resourceRequestHeaders },
+        })
+            .then((response) => {
+                console.log("Response received. Beginning blob download")
+                savedResponse = response
+                return response.blob()
             })
-            .then(() => {
-                this.clearTimeout()
-                this._blobCompletedAt = this._abortTimeoutClearedAt = new Date()
-                Fetch.outputEventTimeElapsedMessage(
-                    "Abort timeout cleared",
-                    this._fetchStartedAt,
-                    this._abortTimeoutClearedAt,
-                )
-                Fetch.outputEventTimeElapsedMessage(
-                    "Blob duration",
-                    this._blobBeganAt,
-                    this._blobCompletedAt,
-                )
+            .then((_value) => {
+                this._fetchDependencies.clearTimeout(timeoutID)
+                console.log("Timeout cleared")
                 return savedResponse
             })
-    }
 
-    static outputEventTimeElapsedMessage(
-        intervalName: string,
-        startedAt?: Date,
-        endedAt?: Date,
-        addendum?: string,
-    ): void {
-        if (addendum) {
-            addendum = `; ${addendum}`
-        } else {
-            addendum = ""
-        }
-        if (!startedAt) {
-            // console.log("Start timestamp not provided")
-            return
-        }
-        if (!endedAt) {
-            // console.log("End timestamp not provided")
-            return
-        }
-        // const diffInMs = endedAt.getTime() - startedAt.getTime()
-        // console.log(`${intervalName} after ${diffInMs} ms${addendum}`)
+        // const init: RequestInit = {}
+        // if (Object.keys(this.resourceRequestHeaders).length) {
+        //     init.headers = this.resourceRequestHeaders
+        // }
+        // const request = new Request(this.resourceURL, init)
+        // const args = this.config.timeout
+        //     ? { signal: this._abortController.signal }
+        //     : {}
+        // // Initiate a timeout to let us abort the request if it takes too long
+        // const timeoutID = this._fetchDependencies.setTimeout(() => {
+        //     // this._fetchAbortedAt = new Date()
+        //     // Fetch.outputEventTimeElapsedMessage(
+        //     //     "Fetch aborted",
+        //     //     this._fetchStartedAt,
+        //     //     this._fetchAbortedAt,
+        //     // )
+        //     this._abortController.abort()
+        //     this.testResults.timeoutTriggered = true
+        // }, this.config.timeout)
+        // this._fetchStartedAt = new Date()
+        // let savedResponse: Response
+        // return fetch(request, args)
+        //     .then((resp) => {
+        //         savedResponse = resp
+        //         this._blobBeganAt = new Date()
+        //         Fetch.outputEventTimeElapsedMessage(
+        //             "Blob began",
+        //             this._fetchStartedAt,
+        //             this._blobBeganAt,
+        //         )
+        //         if (!resp.ok) {
+        //             throw new Error(
+        //                 `Network response status not okay: ${resp.status}`,
+        //             )
+        //         }
+        //         return resp.blob()
+        //     })
+        //     .then(() => {
+        //         this._fetchDependencies.clearTimeout(timeoutID)
+        //         this._blobCompletedAt = this._abortTimeoutClearedAt = new Date()
+        //         Fetch.outputEventTimeElapsedMessage(
+        //             "Abort timeout cleared",
+        //             this._fetchStartedAt,
+        //             this._abortTimeoutClearedAt,
+        //         )
+        //         Fetch.outputEventTimeElapsedMessage(
+        //             "Blob duration",
+        //             this._blobBeganAt,
+        //             this._blobCompletedAt,
+        //         )
+        //         return savedResponse
+        //     })
     }
 }

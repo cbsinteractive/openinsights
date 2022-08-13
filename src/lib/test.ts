@@ -11,12 +11,6 @@ import { BeaconHandler } from "../util/beaconHandler"
  * @typeParam SBR The type to be used for the send beacon result.
  */
 export abstract class Test<C, R, D, SBR> implements Executable {
-    /**
-     * Id of the fetch timeout. This is used to cancel the timeout if the
-     * test succeeds or fails with an error before the timeout elapses.
-     */
-    private _timeoutId: number | undefined
-
     constructor(
         /**
          * The test configuration.
@@ -60,27 +54,6 @@ export abstract class Test<C, R, D, SBR> implements Executable {
 
     get beaconHeaders(): Record<string, string> | undefined {
         return
-    }
-
-    /**
-     * Set the id of the timeout used to trigger test failure if it takes
-     * too long.
-     * @param timeoutId The id of a timeout created by window.setTimeout
-     */
-    setTimeoutId(timeoutId: number): void {
-        if (this._timeoutId == undefined) {
-            this._timeoutId = timeoutId
-        }
-    }
-
-    /**
-     * Clear an timeout when the test is considered to have succeeded or
-     * failed in a normal way. Subsequent calls have no effect.
-     */
-    clearTimeout(): void {
-        if (typeof this._timeoutId == "number") {
-            window.clearTimeout(this._timeoutId)
-        }
     }
 
     /**
