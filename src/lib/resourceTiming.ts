@@ -65,46 +65,4 @@ export function asyncGetEntry(
     _isValidEntryFunc: ResourceTimingEntryValidationPredicate,
 ): Promise<PerformanceResourceTiming> {
     throw new Error("asyncGetEntry not implemented")
-    // return new window.Promise((resolve, reject): void => {
-    //     let entry: PerformanceResourceTiming | undefined
-    //     const observer = new window.PerformanceObserver(
-    //         (
-    //             list: PerformanceObserverEntryList,
-    //             observer: PerformanceObserver,
-    //         ) => {
-    //             if (!entry) {
-    //                 const filteredEntries = list.getEntriesByName(name)
-    //                 if (filteredEntries.length) {
-    //                     window.clearTimeout(timeoutId)
-    //                     observer.disconnect()
-    //                     entry = getValidEntry(
-    //                         window,
-    //                         filteredEntries,
-    //                         isValidEntryFunc,
-    //                     )
-    //                     entry
-    //                         ? resolve(entry)
-    //                         : reject(
-    //                               new NoValidEntryError(name, filteredEntries),
-    //                           )
-    //                 }
-    //             }
-    //         },
-    //     )
-    //     const timeoutId = window.setTimeout(() => {
-    //         if (!entry) {
-    //             observer.disconnect()
-    //             reject(new PerformanceTimingObserverTimeoutError(name, timeout))
-    //         }
-    //     }, timeout)
-    //     try {
-    //         observer.observe({
-    //             type: "resource",
-    //             // Allows the observer access to entries buffered before it was created
-    //             buffered: true,
-    //         })
-    //     } catch (e) {
-    //         reject(e)
-    //     }
-    // })
 }
