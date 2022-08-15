@@ -3,6 +3,5 @@ module.exports = {
     testRegex: "\\.test\\.ts",
     collectCoverageFrom: ["src/*.ts", "src/lib/*.ts", "src/util/*.ts"],
     automock: false,
-    setupFiles: ["./setupJest.js"],
     testEnvironment: "jsdom",
 }
