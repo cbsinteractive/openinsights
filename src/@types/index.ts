@@ -1,14 +1,14 @@
-export { KnownErrors } from "../lib/errors"
+// export { KnownErrors } from "../lib/errors"
 
-/**
- * An interface representing the result of a test's setup activity.
- */
-export interface TestSetupResult {
-    /**
-     * A container for the test setup data
-     */
-    data?: unknown
-}
+// /**
+//  * An interface representing the result of a test's setup activity.
+//  */
+// export interface TestSetupResult<T> {
+//     /**
+//      * A container for the test setup data
+//      */
+//     data?: T
+// }
 
 /**
  * An alias for a boolean-returning function that evaluates whether a Resource
@@ -176,9 +176,11 @@ export type SessionProcessFunc = (
 export interface ClientSettings {
     /**
      * The approximate delay (in milliseconds) after {@link init} is called
-     * before the RUM session should begin.
+     * before downloading session configuration. This is generally when we say
+     * the RUM session begins.
      */
-    preConfigStartDelay?: number
+    sessionConfigDelay: number
+    // preConfigStartDelay?: number
     /**
      * An array of objects implementing {@link Provider}. When {@link init} is
      * called, these providers will participate in the RUM session.

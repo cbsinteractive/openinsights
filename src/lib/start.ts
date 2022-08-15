@@ -5,17 +5,17 @@ import defaultSessionProcessFunc from "../util/defaultSessionProcessFunc"
  * Called internally if a non-zero {@link ClientSettings.preConfigStartDelay}
  * setting has been specified. Calls {@link start} after the delay.
  *
- * @param delay The approximate time to wait (in milliseconds).
+ * @param sessionConfigDelay The approximate time to wait (in milliseconds).
  * @param settings The settings object passed to {@link init}.
  */
 export function startLater(
-    delay: number,
+    sessionConfigDelay: number,
     settings: ClientSettings,
 ): Promise<SessionResult> {
     return new Promise((resolve) => {
         setTimeout(() => {
             start(settings).then((result) => resolve(result))
-        }, delay)
+        }, sessionConfigDelay)
     })
 }
 

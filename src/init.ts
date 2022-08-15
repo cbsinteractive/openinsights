@@ -15,8 +15,8 @@ import whenReady from "./util/loadWhenDocumentReady"
  */
 export default function init(settings: ClientSettings): Promise<SessionResult> {
     return whenReady().then(() => {
-        if (settings.preConfigStartDelay) {
-            return startLater(settings.preConfigStartDelay, settings)
+        if (settings.sessionConfigDelay) {
+            return startLater(settings.sessionConfigDelay, settings)
         }
         return start(settings)
     })
