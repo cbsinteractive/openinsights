@@ -125,6 +125,7 @@ export abstract class Fetch<
                 return this.updateFetchTestResults(response, entry)
             })
             .catch((reason) => {
+                console.error(reason)
                 return this.onError(reason)
             })
     }
@@ -166,6 +167,7 @@ export abstract class Fetch<
             this.testResults.timeoutTriggered = true
         }, this.config.timeout)
         let savedResponse: Response
+        console.log(`Fetching: ${this.resourceURL}`)
         return fetch(this.resourceURL, {
             method: "GET",
             // explicitly prevent request from outliving the page
