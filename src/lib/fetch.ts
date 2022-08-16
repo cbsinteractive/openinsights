@@ -21,11 +21,20 @@ export interface FetchTestResultBundle {
 //     setTimeout: (fn: TimerHandler, timeout: number) => number
 // }
 
-export class Fetch<T> {
-    execute(): Promise<T> {
-        return Promise.resolve({} as T)
-    }
+// export const Fetch: Executable = {
+//     execute: () => {}
+// }
+
+export function fetch() {
+    return Promise.resolve("foo")
 }
+
+// export class Fetch<T> {
+//     execute(): Promise<T> {
+//         debugger
+//         // return Promise.resolve({} as T)
+//     }
+// }
 
 // /**
 //  * Class representing a basic "fetch" test. It fetches a supplied resource from the
