@@ -1,4 +1,4 @@
-import { ClientSettings, Executable, SessionResult } from "../@types"
+import { Executable, SessionResult, SessionStartupFuncs } from "../@types"
 import defaultSessionProcessFunc from "../util/defaultSessionProcessFunc"
 
 /**
@@ -10,38 +10,32 @@ import defaultSessionProcessFunc from "../util/defaultSessionProcessFunc"
  */
 export function startLater(
     sessionConfigDelay: number,
-    settings: ClientSettings,
+    sessionStartupFuncs: SessionStartupFuncs[],
 ): Promise<SessionResult> {
     return new Promise((resolve) => {
         setTimeout(() => {
-            start(settings).then((result) => resolve(result))
+            start(sessionStartupFuncs).then((result) => resolve(result))
         }, sessionConfigDelay)
     })
 }
 
-/**
- * Called immediately by {@link init} if no
- * {@link ClientSettings.preConfigStartDelay} setting has been specified.
- *
- * @param settings The settings object passed to {@link init}.
- */
-export function start(settings: ClientSettings): Promise<SessionResult> {
-    const activeProviders = settings.providers.filter((p) => p.shouldRun())
-    if (!activeProviders.length) {
-        return Promise.resolve({ testResults: [] })
-    }
+export function start(
+    sessionStartupFuncs: SessionStartupFuncs[],
+): Promise<SessionResult> {
     return Promise.allSettled(
-        activeProviders.map((provider) => provider.fetchSessionConfig()),
+        sessionStartupFuncs.map((funcs) => funcs.fetchSessionConfiguration()),
     ).then((settled) => {
         const executables: Executable[] = []
         settled.forEach((result, idx) => {
             if (result.status === "fulfilled" && "value" in result) {
-                const provider = activeProviders[idx]
-                provider.setSessionConfig(result.value)
-                executables.push(...provider.expandTasks())
+                executables.push(
+                    ...sessionStartupFuncs[idx].produceExecutables(
+                        result.value,
+                    ),
+                )
             }
         })
-        const process = settings.sessionProcess || defaultSessionProcessFunc
+        const process = defaultSessionProcessFunc
         return process(executables)
     })
 }

@@ -36,11 +36,11 @@
 export * from "./@types"
 // Init
 export { default as init } from "./init"
-// export { Fetch } from "./lib/fetch"
+export { Fetch } from "./lib/fetch"
 // Libs
 export type { FetchConfiguration, FetchTestResultBundle } from "./lib/fetch"
 export { default as getNetworkInformation } from "./lib/getNetworkInformation"
-export { ProviderBase } from "./lib/providerBase"
+// export { ProviderBase } from "./lib/providerBase"
 export * from "./lib/resourceTiming"
 export { Test } from "./lib/test"
 export { BeaconHandler } from "./util/beaconHandler"

@@ -1,4 +1,4 @@
-import { ClientSettings, SessionResult } from "./@types"
+import { SessionResult, SessionStartupFuncs } from "./@types"
 import { start, startLater } from "./lib/start"
 import whenReady from "./util/loadWhenDocumentReady"
 
@@ -13,11 +13,14 @@ import whenReady from "./util/loadWhenDocumentReady"
  * determined by the tag owner at runtime, so may be used to specify page-level
  * overrides to general defaults.
  */
-export default function init(settings: ClientSettings): Promise<SessionResult> {
+export default function init(
+    sessionConfigDelay: number,
+    sessionStartupFuncs: SessionStartupFuncs[],
+): Promise<SessionResult> {
     return whenReady().then(() => {
-        if (settings.sessionConfigDelay) {
-            return startLater(settings.sessionConfigDelay, settings)
+        if (sessionConfigDelay) {
+            return startLater(sessionConfigDelay, sessionStartupFuncs)
         }
-        return start(settings)
+        return start(sessionStartupFuncs)
     })
 }

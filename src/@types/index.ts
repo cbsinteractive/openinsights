@@ -106,46 +106,55 @@ export interface Executable {
     execute(): Promise<unknown>
 }
 
-/**
- * An interface representing a provider.
- */
-export interface Provider {
-    /**
-     * The provider specfic session configuration object obtained from calling
-     * {@link Provider.fetchSessionConfig}.
-     */
-    sessionConfig?: unknown
-
-    /**
-     * Called within {@link start} to sets the provider's session configuration
-     * object after calling {@link ProviderBase.fetchSessionConfig}.
-     * @param value The provider-defined configuration object resulting from a
-     * call to {@link Provider.fetchSessionConfig}
-     */
-    setSessionConfig(value: unknown): void
-
-    /**
-     * A hook called very early by the core module, enabling providers an
-     * opportunity to determine if they should participate in the session,
-     * e.g. based on user agent feature detection, random downsampling, etc.
-     */
-    shouldRun(): boolean
-
-    /**
-     * @remarks
-     * A provider implements this in order to define its logic for producing
-     * its specfic session configuration object at runtime.
-     */
-    fetchSessionConfig(): Promise<unknown>
-
-    /**
-     * A provider implements this in order to define its logic for converting
-     * its session configuration object into one or more {@link Executable}
-     * objects (usually {@link Fetch} or other classes inheriting from
-     * {@link Test}).
-     */
-    expandTasks(): Executable[]
+export type ProduceExecutablesFunc = (
+    sessionConfiguration: unknown,
+) => Executable[]
+export type FetchSessionConfigurationFunc = () => Promise<unknown>
+export type SessionStartupFuncs = {
+    fetchSessionConfiguration: FetchSessionConfigurationFunc
+    produceExecutables: ProduceExecutablesFunc
 }
+
+// /**
+//  * An interface representing a provider.
+//  */
+// export interface Provider {
+//     /**
+//      * The provider specfic session configuration object obtained from calling
+//      * {@link Provider.fetchSessionConfig}.
+//      */
+//     sessionConfig?: unknown
+
+//     /**
+//      * Called within {@link start} to sets the provider's session configuration
+//      * object after calling {@link ProviderBase.fetchSessionConfig}.
+//      * @param value The provider-defined configuration object resulting from a
+//      * call to {@link Provider.fetchSessionConfig}
+//      */
+//     setSessionConfig(value: unknown): void
+
+//     /**
+//      * A hook called very early by the core module, enabling providers an
+//      * opportunity to determine if they should participate in the session,
+//      * e.g. based on user agent feature detection, random downsampling, etc.
+//      */
+//     shouldRun(): boolean
+
+//     /**
+//      * @remarks
+//      * A provider implements this in order to define its logic for producing
+//      * its specfic session configuration object at runtime.
+//      */
+//     fetchSessionConfig(): Promise<unknown>
+
+//     /**
+//      * A provider implements this in order to define its logic for converting
+//      * its session configuration object into one or more {@link Executable}
+//      * objects (usually {@link Fetch} or other classes inheriting from
+//      * {@link Test}).
+//      */
+//     expandTasks(): Executable[]
+// }
 
 /**
  * A function that takes an array of {@link Executable} test objects and returns
@@ -167,32 +176,32 @@ export type SessionProcessFunc = (
     executables: Executable[],
 ) => Promise<SessionResult>
 
-/**
- * Used by the tag owner to pass settings to the client at runtime. In general,
- * these settings affect core module behavior at the page level. For example,
- * the site might pass different settings to the client on one page than it
- * does on another.
- */
-export interface ClientSettings {
-    /**
-     * The approximate delay (in milliseconds) after {@link init} is called
-     * before downloading session configuration. This is generally when we say
-     * the RUM session begins.
-     */
-    sessionConfigDelay: number
-    // preConfigStartDelay?: number
-    /**
-     * An array of objects implementing {@link Provider}. When {@link init} is
-     * called, these providers will participate in the RUM session.
-     */
-    providers: Provider[]
-    /**
-     * At runtime, this function takes the list of {@link Executable}
-     * objects supplied by providers participating in the RUM session
-     * and executes any tests they contain.
-     *
-     * @remarks
-     * Defaults to {@link defaultSequenceFunc}
-     */
-    sessionProcess?: SessionProcessFunc
-}
+// /**
+//  * Used by the tag owner to pass settings to the client at runtime. In general,
+//  * these settings affect core module behavior at the page level. For example,
+//  * the site might pass different settings to the client on one page than it
+//  * does on another.
+//  */
+// export interface ClientSettings {
+//     /**
+//      * The approximate delay (in milliseconds) after {@link init} is called
+//      * before downloading session configuration. This is generally when we say
+//      * the RUM session begins.
+//      */
+//     sessionConfigDelay: number
+//     // preConfigStartDelay?: number
+//     /**
+//      * An array of objects implementing {@link Provider}. When {@link init} is
+//      * called, these providers will participate in the RUM session.
+//      */
+//     providers: Provider[]
+//     /**
+//      * At runtime, this function takes the list of {@link Executable}
+//      * objects supplied by providers participating in the RUM session
+//      * and executes any tests they contain.
+//      *
+//      * @remarks
+//      * Defaults to {@link defaultSequenceFunc}
+//      */
+//     sessionProcess?: SessionProcessFunc
+// }
