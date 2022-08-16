@@ -1,5 +1,3 @@
-import { ResourceTimingEntryValidationPredicate } from "../@types"
-
 export class PerformanceTimingObserverTimeoutError extends Error {
     constructor(name: string, timeout: number) {
         super(
@@ -19,6 +17,20 @@ export class NoValidEntryError extends Error {
 
     get entries() {
         return this._entries
+    }
+}
+
+export class PerformanceEntryManagerInitializedMultipleTimes extends Error {
+    constructor() {
+        super("Performance entry manager initialized multiple times")
+        Object.setPrototypeOf(this, new.target.prototype)
+    }
+}
+
+export class PerformanceEntryManagerNotInitialized extends Error {
+    constructor() {
+        super("Performance entry manager not initialized")
+        Object.setPrototypeOf(this, new.target.prototype)
     }
 }
 
@@ -46,23 +58,68 @@ export class NoValidEntryError extends Error {
 //     }
 // }
 
-/**
- * Asyncronusly gets a Resource Timing entry from the performance timeline
- * by its name (url).
- * @remarks
- * It starts a PerformanceObserver to observe the timeline for the entry and
- * resolves with the entry when found. If the timeout is reached before an
- * entry is returned, the Promise is rejected.
- * @param name URL of the of the entry
- * @param timeout Time to wait (in milliseconds) for the observer to find the
- * Resource Timing entry.
- * @param isValidEntryFunc Boolean function used to determine validity of
- * Resource Timing entry.
- */
-export function asyncGetEntry(
-    _name: string,
-    _timeout: number,
-    _isValidEntryFunc: ResourceTimingEntryValidationPredicate,
-): Promise<PerformanceResourceTiming> {
+// /**
+//  * Asyncronusly gets a Resource Timing entry from the performance timeline
+//  * by its name (url).
+//  * @remarks
+//  * It starts a PerformanceObserver to observe the timeline for the entry and
+//  * resolves with the entry when found. If the timeout is reached before an
+//  * entry is returned, the Promise is rejected.
+//  * @param name URL of the of the entry
+//  * @param timeout Time to wait (in milliseconds) for the observer to find the
+//  * Resource Timing entry.
+//  * @param isValidEntryFunc Boolean function used to determine validity of
+//  * Resource Timing entry.
+//  */
+// export function asyncGetEntry(
+//     _name: string,
+//     _timeout: number,
+//     _isValidEntryFunc: ResourceTimingEntryValidationPredicate,
+// ): Promise<PerformanceResourceTiming> {
+//     throw new Error("asyncGetEntry not implemented")
+// }
+
+export class Manager {
+    private static _instance: Manager
+    private _observer
+    private constructor(
+        newPerformanceObserver: (
+            callback: PerformanceObserverCallback,
+        ) => PerformanceObserver,
+    ) {
+        this._observer = newPerformanceObserver((entries) => {
+            entries.getEntriesByType("resource").forEach((entry) => {
+                console.log(entry)
+            })
+        })
+        this._observer.observe({
+            type: "resource",
+            // Disregard entries buffered before the observer was created
+            buffered: false,
+        })
+    }
+
+    static init(
+        newPerformanceObserver: (
+            callback: PerformanceObserverCallback,
+        ) => PerformanceObserver,
+    ) {
+        if (Manager._instance) {
+            throw new PerformanceEntryManagerInitializedMultipleTimes()
+        }
+        Manager._instance = new Manager(newPerformanceObserver)
+    }
+
+    static getInstance() {
+        if (!Manager._instance) {
+            throw new PerformanceEntryManagerNotInitialized()
+        }
+        return Manager._instance
+    }
+}
+
+export function asyncGetEntry(url: string): Promise<PerformanceResourceTiming> {
+    console.log(`Hunting down ${url}`)
+    console.log(Manager.getInstance())
     throw new Error("asyncGetEntry not implemented")
 }

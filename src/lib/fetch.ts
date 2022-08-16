@@ -1,3 +1,6 @@
+import { FetchOptions } from "../@types"
+import { asyncGetEntry } from "./resourceTiming"
+
 /**
  * Contains common fetch configuration attributes
  */
@@ -16,17 +19,178 @@ export interface FetchTestResultBundle {
     timeoutTriggered: boolean
 }
 
-// interface Dependencies {
-//     clearTimeout: (timeoutID: number) => void
-//     setTimeout: (fn: TimerHandler, timeout: number) => number
-// }
+export class ResponseError extends Error {
+    constructor(private _url: string, private _status: number) {
+        super(`Error downloading ${_url} (HTTP status ${_status})`)
+        Object.setPrototypeOf(this, new.target.prototype)
+    }
+
+    get status() {
+        return this._status
+    }
+
+    get url() {
+        return this._url
+    }
+}
+
+interface Dependencies {
+    clearTimeout: (timeoutID: number) => void
+    fetch: (url: string, options?: FetchOptions) => Promise<Response>
+    setTimeout: (fn: () => void, timeout: number) => number
+}
 
 // export const Fetch: Executable = {
 //     execute: () => {}
 // }
 
-export function fetch() {
-    return Promise.resolve("foo")
+export type TestSetupFunc<T> = () => Promise<T>
+
+export function fetch<T extends FetchTestResultBundle>(
+    dependencies: Dependencies,
+    url: string,
+    fetchTimeout: number,
+    requestHeaders: Record<string, string> | null,
+    testSetup: TestSetupFunc<T>,
+): Promise<T> {
+    const result = testSetup()
+        .then((testResult) =>
+            fetchObject(
+                dependencies,
+                url,
+                fetchTimeout,
+                requestHeaders,
+                testResult,
+            ),
+        )
+        .then((response) => {
+            console.log(`Ok: ${response.ok}`)
+            console.log(`Status: ${response.status}`)
+            if (!response.ok) {
+                // Use structured error
+                throw new ResponseError(url, response.status)
+            }
+        })
+        .then(() => asyncGetEntry(url))
+        .catch((reason) => {
+            console.log(reason)
+        })
+    throw new Error("fetch not implemented")
+}
+
+function fetchObject<T extends FetchTestResultBundle>(
+    dependencies: Dependencies,
+    url: string,
+    fetchTimeout: number,
+    requestHeaders: Record<string, string> | null,
+    testResults: T,
+): Promise<Response> {
+    const abortController = new AbortController()
+    const timeoutID = dependencies.setTimeout(() => {
+        abortController.abort()
+        console.log("Fetch aborted")
+        testResults.timeoutTriggered = true
+    }, fetchTimeout)
+    console.log(`Abort timeout ID: ${timeoutID}`)
+    const options: FetchOptions = {
+        method: "GET",
+        // explicitly prevent request from outliving the page
+        keepalive: false,
+        signal: abortController.signal,
+    }
+    if (requestHeaders) {
+        options.headers = { ...requestHeaders }
+    }
+    return dependencies
+        .fetch(url, options)
+        .then((response) => {
+            console.log("Response received. Beginning blob download")
+            return Promise.all([Promise.resolve(response), response.blob()])
+        })
+        .then(([response, _blob]) => {
+            dependencies.clearTimeout(timeoutID)
+            console.log("Blob received. Returning response")
+            return response
+        })
+
+    // const abortController = new AbortController()
+    // const timeoutID = this._fetchDependencies.setTimeout(() => {
+    //     abortController.abort()
+    //     console.log("Fetch aborted")
+    //     this.testResults.timeoutTriggered = true
+    // }, this.config.timeout)
+    // let savedResponse: Response
+    // console.log(`Fetching: ${this.resourceURL}`)
+    // return fetch(this.resourceURL, {
+    //     method: "GET",
+    //     // explicitly prevent request from outliving the page
+    //     keepalive: false,
+    //     signal: abortController.signal,
+    //     headers: { ...this.resourceRequestHeaders },
+    // })
+    //     .then((response) => {
+    //         console.log("Response received. Beginning blob download")
+    //         savedResponse = response
+    //         return response.blob()
+    //     })
+    //     .then((_value) => {
+    //         this._fetchDependencies.clearTimeout(timeoutID)
+    //         console.log("Blob received. Returning response")
+    //         return savedResponse
+    //     })
+
+    // // const init: RequestInit = {}
+    // // if (Object.keys(this.resourceRequestHeaders).length) {
+    // //     init.headers = this.resourceRequestHeaders
+    // // }
+    // // const request = new Request(this.resourceURL, init)
+    // // const args = this.config.timeout
+    // //     ? { signal: this._abortController.signal }
+    // //     : {}
+    // // // Initiate a timeout to let us abort the request if it takes too long
+    // // const timeoutID = this._fetchDependencies.setTimeout(() => {
+    // //     // this._fetchAbortedAt = new Date()
+    // //     // Fetch.outputEventTimeElapsedMessage(
+    // //     //     "Fetch aborted",
+    // //     //     this._fetchStartedAt,
+    // //     //     this._fetchAbortedAt,
+    // //     // )
+    // //     this._abortController.abort()
+    // //     this.testResults.timeoutTriggered = true
+    // // }, this.config.timeout)
+    // // this._fetchStartedAt = new Date()
+    // // let savedResponse: Response
+    // // return fetch(request, args)
+    // //     .then((resp) => {
+    // //         savedResponse = resp
+    // //         this._blobBeganAt = new Date()
+    // //         Fetch.outputEventTimeElapsedMessage(
+    // //             "Blob began",
+    // //             this._fetchStartedAt,
+    // //             this._blobBeganAt,
+    // //         )
+    // //         if (!resp.ok) {
+    // //             throw new Error(
+    // //                 `Network response status not okay: ${resp.status}`,
+    // //             )
+    // //         }
+    // //         return resp.blob()
+    // //     })
+    // //     .then(() => {
+    // //         this._fetchDependencies.clearTimeout(timeoutID)
+    // //         this._blobCompletedAt = this._abortTimeoutClearedAt = new Date()
+    // //         Fetch.outputEventTimeElapsedMessage(
+    // //             "Abort timeout cleared",
+    // //             this._fetchStartedAt,
+    // //             this._abortTimeoutClearedAt,
+    // //         )
+    // //         Fetch.outputEventTimeElapsedMessage(
+    // //             "Blob duration",
+    // //             this._blobBeganAt,
+    // //             this._blobCompletedAt,
+    // //         )
+    // //         return savedResponse
+    // //     })
 }
 
 // export class Fetch<T> {
