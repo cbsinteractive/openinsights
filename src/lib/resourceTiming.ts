@@ -79,9 +79,13 @@ export class PerformanceEntryManagerNotInitialized extends Error {
 //     throw new Error("asyncGetEntry not implemented")
 // }
 
-export class Manager {
-    private static _instance: Manager
+export class PerformanceEntryManager {
+    private static _instance: PerformanceEntryManager
     private _observer
+    private _consumers: {
+        url: string
+        callback: (entry: PerformanceEntry) => void
+    }[] = []
     private constructor(
         newPerformanceObserver: (
             callback: PerformanceObserverCallback,
@@ -89,7 +93,25 @@ export class Manager {
     ) {
         this._observer = newPerformanceObserver((entries) => {
             entries.getEntriesByType("resource").forEach((entry) => {
-                console.log(entry)
+                // Test the resource "name" to see if any consumers have
+                // registered an interest in it.
+                console.log(
+                    `Count of consumers before: ${this._consumers.length}`,
+                )
+                const interestedConsumers = this._consumers.filter(
+                    (consumer) => consumer.url === entry.name,
+                )
+                interestedConsumers.forEach((consumer) =>
+                    consumer.callback(entry),
+                )
+                // `indexOf` uses strict equality. For object operands, that's
+                // true only if both refer to the same object.
+                this._consumers = this._consumers.filter(
+                    (consumer) => interestedConsumers.indexOf(consumer) === -1,
+                )
+                console.log(
+                    `Count of consumers after: ${this._consumers.length}`,
+                )
             })
         })
         this._observer.observe({
@@ -99,27 +121,40 @@ export class Manager {
         })
     }
 
+    static getInstance() {
+        if (!PerformanceEntryManager._instance) {
+            throw new PerformanceEntryManagerNotInitialized()
+        }
+        return PerformanceEntryManager._instance
+    }
+
     static init(
         newPerformanceObserver: (
             callback: PerformanceObserverCallback,
         ) => PerformanceObserver,
     ) {
-        if (Manager._instance) {
+        if (PerformanceEntryManager._instance) {
             throw new PerformanceEntryManagerInitializedMultipleTimes()
         }
-        Manager._instance = new Manager(newPerformanceObserver)
+        PerformanceEntryManager._instance = new PerformanceEntryManager(
+            newPerformanceObserver,
+        )
     }
 
-    static getInstance() {
-        if (!Manager._instance) {
-            throw new PerformanceEntryManagerNotInitialized()
-        }
-        return Manager._instance
+    disconnectObserver() {
+        this._observer && this._observer.disconnect()
+    }
+
+    registerCallback(url: string, callback: (entry: PerformanceEntry) => void) {
+        this._consumers.push({
+            url,
+            callback,
+        })
     }
 }
 
-export function asyncGetEntry(url: string): Promise<PerformanceResourceTiming> {
-    console.log(`Hunting down ${url}`)
-    console.log(Manager.getInstance())
-    throw new Error("asyncGetEntry not implemented")
-}
+// export function asyncGetEntry(url: string): Promise<PerformanceResourceTiming> {
+//     console.log(`Hunting down ${url}`)
+//     // console.log(Manager.getInstance())
+//     throw new Error("asyncGetEntry not implemented")
+// }

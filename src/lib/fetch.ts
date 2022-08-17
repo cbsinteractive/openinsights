@@ -1,5 +1,6 @@
 import { FetchOptions } from "../@types"
-import { asyncGetEntry } from "./resourceTiming"
+import { PerformanceEntryManager } from "./resourceTiming"
+// import { asyncGetEntry } from "./resourceTiming"
 
 /**
  * Contains common fetch configuration attributes
@@ -53,6 +54,12 @@ export function fetch<T extends FetchTestResultBundle>(
     requestHeaders: Record<string, string> | null,
     testSetup: TestSetupFunc<T>,
 ): Promise<T> {
+    let foundEntry: PerformanceEntry
+    PerformanceEntryManager.getInstance().registerCallback(url, (entry) => {
+        foundEntry = entry
+    })
+    const maxRetries = 5
+    const retryDelay = 500
     const result = testSetup()
         .then((testResult) =>
             fetchObject(
@@ -70,11 +77,29 @@ export function fetch<T extends FetchTestResultBundle>(
                 // Use structured error
                 throw new ResponseError(url, response.status)
             }
+            return Promise.all([Promise.resolve(response.status), findEntry(1)])
         })
-        .then(() => asyncGetEntry(url))
+        .then(([status, entry]) => {
+            console.log(status)
+            console.log(entry)
+        })
         .catch((reason) => {
             console.log(reason)
         })
+
+    function findEntry(tryNumber: number): Promise<PerformanceEntry> {
+        console.log(`findEntry (try ${tryNumber})`)
+        if (foundEntry) {
+            return Promise.resolve(foundEntry)
+        }
+        if (tryNumber >= maxRetries) {
+            return Promise.reject(`Could not find entry after ${tryNumber}`)
+        }
+        return new Promise(() =>
+            setTimeout(() => findEntry(tryNumber + 1), retryDelay),
+        )
+    }
+
     throw new Error("fetch not implemented")
 }
 
