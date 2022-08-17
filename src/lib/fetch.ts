@@ -60,7 +60,6 @@ export function fetch<T extends FetchTestResultBundle>(
         foundEntry = entry
     })
     const maxRetries = 5
-    const retryDelay = 500
     return beforeTest()
         .then((testResult) =>
             fetchObject(
