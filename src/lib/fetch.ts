@@ -48,11 +48,12 @@ export function fetch<T extends FetchTestResultBundle>(
     url: string,
     fetchTimeout: number,
     requestHeaders: Record<string, string> | null,
-    testSetup: TestSetupFunc<T>,
+    beforeTest: TestSetupFunc<T>,
     newTestResult: (
         response: Response,
         performanceEntry: PerformanceEntry,
     ) => T,
+    afterTest: (testResult: T) => Promise<T>,
 ): Promise<T> {
     let foundEntry: PerformanceEntry
     PerformanceEntryManager.getInstance().registerCallback(url, (entry) => {
@@ -60,7 +61,7 @@ export function fetch<T extends FetchTestResultBundle>(
     })
     const maxRetries = 5
     const retryDelay = 500
-    return testSetup()
+    return beforeTest()
         .then((testResult) =>
             fetchObject(
                 dependencies,
@@ -76,22 +77,30 @@ export function fetch<T extends FetchTestResultBundle>(
             if (!response.ok) {
                 throw new ResponseError(url, response.status)
             }
-            return Promise.all([Promise.resolve(response), findEntry(1)])
+            return Promise.all([Promise.resolve(response), findEntry(1, 0)])
         })
         .then(([response, entry]) => newTestResult(response, entry))
+        .then((testResult) => afterTest(testResult))
         .catch((reason) => Promise.reject(reason))
 
-    function findEntry(tryNumber: number): Promise<PerformanceEntry> {
+    function findEntry(tryNumber: number, delay: number) {
         console.log(`findEntry (try ${tryNumber})`)
-        if (foundEntry) {
-            return Promise.resolve(foundEntry)
-        }
-        if (tryNumber >= maxRetries) {
-            return Promise.reject(`Could not find entry after ${tryNumber}`)
-        }
-        return new Promise(() =>
-            setTimeout(() => findEntry(tryNumber + 1), retryDelay),
-        )
+        return foundEntry
+            ? Promise.resolve(foundEntry)
+            : new Promise<PerformanceEntry>((resolve, reject) =>
+                  setTimeout(() => {
+                      if (foundEntry) {
+                          console.log("Found after delay")
+                          resolve(foundEntry)
+                      } else if (tryNumber >= maxRetries) {
+                          reject(`Entry not found after ${tryNumber} tries`)
+                      } else {
+                          findEntry(tryNumber + 1, 1000)
+                              .then((entry) => resolve(entry))
+                              .catch((reason) => reject(reason))
+                      }
+                  }, delay),
+              )
     }
 }
 

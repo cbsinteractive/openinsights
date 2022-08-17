@@ -41,9 +41,10 @@ export class PerformanceEntryManager {
                 const interestedConsumers = this._consumers.filter(
                     (consumer) => consumer.url === entry.name,
                 )
-                interestedConsumers.forEach((consumer) =>
-                    consumer.callback(entry),
-                )
+                interestedConsumers.forEach((consumer) => {
+                    console.log(`Found: ${consumer.url}`)
+                    consumer.callback(entry)
+                })
                 // `indexOf` uses strict equality. For object operands, that's
                 // true only if both refer to the same object.
                 this._consumers = this._consumers.filter(
@@ -91,6 +92,7 @@ export class PerformanceEntryManager {
 
     registerCallback(url: string, callback: (entry: PerformanceEntry) => void) {
         // Need some kind of defensive logic to prevent a memory leak here
+        console.warn("TODO: Implement better callback cache guard")
         if (this._consumers.length < 10) {
             this._consumers.push({
                 url,
