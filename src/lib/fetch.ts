@@ -41,10 +41,6 @@ interface Dependencies {
     setTimeout: (fn: () => void, timeout: number) => number
 }
 
-// export const Fetch: Executable = {
-//     execute: () => {}
-// }
-
 export type TestSetupFunc<T> = () => Promise<T>
 
 export function fetch<T extends FetchTestResultBundle>(
@@ -53,6 +49,10 @@ export function fetch<T extends FetchTestResultBundle>(
     fetchTimeout: number,
     requestHeaders: Record<string, string> | null,
     testSetup: TestSetupFunc<T>,
+    newTestResult: (
+        response: Response,
+        performanceEntry: PerformanceEntry,
+    ) => T,
 ): Promise<T> {
     let foundEntry: PerformanceEntry
     PerformanceEntryManager.getInstance().registerCallback(url, (entry) => {
@@ -60,7 +60,7 @@ export function fetch<T extends FetchTestResultBundle>(
     })
     const maxRetries = 5
     const retryDelay = 500
-    const result = testSetup()
+    return testSetup()
         .then((testResult) =>
             fetchObject(
                 dependencies,
@@ -74,18 +74,12 @@ export function fetch<T extends FetchTestResultBundle>(
             console.log(`Ok: ${response.ok}`)
             console.log(`Status: ${response.status}`)
             if (!response.ok) {
-                // Use structured error
                 throw new ResponseError(url, response.status)
             }
-            return Promise.all([Promise.resolve(response.status), findEntry(1)])
+            return Promise.all([Promise.resolve(response), findEntry(1)])
         })
-        .then(([status, entry]) => {
-            console.log(status)
-            console.log(entry)
-        })
-        .catch((reason) => {
-            console.log(reason)
-        })
+        .then(([response, entry]) => newTestResult(response, entry))
+        .catch((reason) => Promise.reject(reason))
 
     function findEntry(tryNumber: number): Promise<PerformanceEntry> {
         console.log(`findEntry (try ${tryNumber})`)
@@ -99,8 +93,6 @@ export function fetch<T extends FetchTestResultBundle>(
             setTimeout(() => findEntry(tryNumber + 1), retryDelay),
         )
     }
-
-    throw new Error("fetch not implemented")
 }
 
 function fetchObject<T extends FetchTestResultBundle>(
