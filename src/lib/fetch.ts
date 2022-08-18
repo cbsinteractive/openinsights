@@ -49,6 +49,10 @@ export function fetch<T extends FetchTestResultBundle>(
     fetchTimeout: number,
     requestHeaders: Record<string, string> | null,
     beforeTest: TestSetupFunc<T>,
+    /**
+     * A callback giving the client an opportunity to produce a test result
+     * based on the Response object and the Resource Timing entry.
+     */
     newTestResult: (
         response: Response,
         performanceEntry: PerformanceEntry,
