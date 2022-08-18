@@ -57,6 +57,7 @@ export function fetch<T extends FetchTestResultBundle>(
         response: Response,
         performanceEntry: PerformanceEntry,
     ) => T,
+    sendBeacon: (testResult: T) => Promise<T>,
     afterTest: (testResult: T) => Promise<T>,
 ): Promise<T> {
     let foundEntry: PerformanceEntry
@@ -83,6 +84,7 @@ export function fetch<T extends FetchTestResultBundle>(
             return Promise.all([Promise.resolve(response), findEntry(1, 0)])
         })
         .then(([response, entry]) => newTestResult(response, entry))
+        .then((testResult) => sendBeacon(testResult))
         .then((testResult) => afterTest(testResult))
         .catch((reason) => Promise.reject(reason))
 
