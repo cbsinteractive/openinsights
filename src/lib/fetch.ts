@@ -1,4 +1,3 @@
-import { FetchOptions } from "../@types"
 import { PerformanceEntryManager } from "./resourceTiming"
 // import { asyncGetEntry } from "./resourceTiming"
 
@@ -37,7 +36,7 @@ export class ResponseError extends Error {
 
 interface Dependencies {
     clearTimeout: (timeoutID: number) => void
-    fetch: (url: string, options?: FetchOptions) => Promise<Response>
+    fetch: (url: string, options?: RequestInit) => Promise<Response>
     setTimeout: (fn: () => void, timeout: number) => number
 }
 
@@ -59,6 +58,7 @@ export function fetch<T extends FetchTestResultBundle>(
     ) => T,
     sendBeacon: (testResult: T) => Promise<T>,
     afterTest: (testResult: T) => Promise<T>,
+    onError: (error: string) => void,
 ): Promise<T> {
     let foundEntry: PerformanceEntry
     PerformanceEntryManager.getInstance().registerCallback(url, (entry) => {
@@ -86,7 +86,10 @@ export function fetch<T extends FetchTestResultBundle>(
         .then(([response, entry]) => newTestResult(response, entry))
         .then((testResult) => sendBeacon(testResult))
         .then((testResult) => afterTest(testResult))
-        .catch((reason) => Promise.reject(reason))
+        .catch((reason) => {
+            onError(reason)
+            return Promise.reject(reason)
+        })
 
     function findEntry(tryNumber: number, delay: number) {
         console.log(`findEntry (try ${tryNumber})`)
@@ -123,7 +126,7 @@ function fetchObject<T extends FetchTestResultBundle>(
         testResults.timeoutTriggered = true
     }, fetchTimeout)
     console.log(`Abort timeout ID: ${timeoutID}`)
-    const options: FetchOptions = {
+    const options: RequestInit = {
         method: "GET",
         // explicitly prevent request from outliving the page
         keepalive: false,

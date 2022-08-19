@@ -115,13 +115,6 @@ export type SessionStartupFuncs = {
     produceExecutables: ProduceExecutablesFunc
 }
 
-export type FetchOptions = {
-    method?: string
-    keepalive: boolean
-    headers?: Record<string, string>
-    signal?: AbortSignal
-}
-
 // /**
 //  * An interface representing a provider.
 //  */
