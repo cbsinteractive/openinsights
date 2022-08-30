@@ -36,6 +36,7 @@ export class ResponseError extends Error {
 interface Dependencies {
     clearTimeout: (timeoutID: number) => void
     fetch: (url: string, options?: RequestInit) => Promise<Response>
+    performanceEntryManager: PerformanceEntryManager
     setTimeout: (fn: () => void, timeout: number) => number
 }
 
@@ -59,7 +60,7 @@ export function fetch<T extends FetchTestResultBundle>(
     onError: (error: string) => void,
 ): Promise<T> {
     let foundEntry: PerformanceEntry
-    PerformanceEntryManager.getInstance().registerCallback(url, (entry) => {
+    dependencies.performanceEntryManager.registerCallback(url, (entry) => {
         foundEntry = entry
     })
     const maxRetries = 5

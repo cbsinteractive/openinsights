@@ -13,7 +13,6 @@ export class PerformanceEntryManagerNotInitialized extends Error {
 }
 
 export class PerformanceEntryManager {
-    private static _instance: PerformanceEntryManager
     private _observer
     private _consumers: {
         /**
@@ -26,7 +25,7 @@ export class PerformanceEntryManager {
          */
         callback: (entry: PerformanceEntry) => void
     }[] = []
-    private constructor(
+    constructor(
         newPerformanceObserver: (
             callback: PerformanceObserverCallback,
         ) => PerformanceObserver,
@@ -60,26 +59,6 @@ export class PerformanceEntryManager {
             // Disregard entries buffered before the observer was created
             buffered: false,
         })
-    }
-
-    static getInstance() {
-        if (!PerformanceEntryManager._instance) {
-            throw new PerformanceEntryManagerNotInitialized()
-        }
-        return PerformanceEntryManager._instance
-    }
-
-    static init(
-        newPerformanceObserver: (
-            callback: PerformanceObserverCallback,
-        ) => PerformanceObserver,
-    ): PerformanceEntryManager {
-        if (PerformanceEntryManager._instance) {
-            throw new PerformanceEntryManagerInitializedMultipleTimes()
-        }
-        return (PerformanceEntryManager._instance = new PerformanceEntryManager(
-            newPerformanceObserver,
-        ))
     }
 
     disconnectObserver() {
