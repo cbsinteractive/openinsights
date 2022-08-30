@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [next] - TBD
 
+## [5.0.0] - TBD
+
+### Changed
+
+- TODO
+
 ## [4.4.2] - 2022-08-12
 
 ## Security
