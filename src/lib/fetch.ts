@@ -40,19 +40,18 @@ interface Dependencies {
     setTimeout: (fn: () => void, timeout: number) => number
 }
 
-export type TestSetupFunc<T> = () => Promise<T>
-
 export function fetch<T extends FetchTestResultBundle>(
     dependencies: Dependencies,
     url: string,
     fetchTimeout: number,
     requestHeaders: Record<string, string> | null,
-    beforeTest: TestSetupFunc<T>,
+    beforeTest: () => Promise<T>,
     /**
-     * A callback giving the client an opportunity to produce a test result
-     * based on the Response object and the Resource Timing entry.
+     * A callback giving the client an opportunity to produce update their
+     * test result based on the Response object and the Resource Timing entry.
      */
-    newTestResult: (
+    beforeBeacon: (
+        testResult: T,
         response: Response,
         performanceEntry: PerformanceEntry,
     ) => T,
@@ -67,23 +66,32 @@ export function fetch<T extends FetchTestResultBundle>(
     const maxRetries = 5
     return beforeTest()
         .then((testResult) =>
-            fetchObject(
-                dependencies,
-                url,
-                fetchTimeout,
-                requestHeaders,
-                testResult,
-            ),
+            Promise.all([
+                Promise.resolve(testResult),
+                fetchObject(
+                    dependencies,
+                    url,
+                    fetchTimeout,
+                    requestHeaders,
+                    testResult,
+                ),
+            ]),
         )
-        .then((response) => {
+        .then(([testResult, response]) => {
             console.log(`Ok: ${response.ok}`)
             console.log(`Status: ${response.status}`)
             if (!response.ok) {
                 throw new ResponseError(url, response.status)
             }
-            return Promise.all([Promise.resolve(response), findEntry(1, 0)])
+            return Promise.all([
+                Promise.resolve(testResult),
+                Promise.resolve(response),
+                findEntry(1, 0),
+            ])
         })
-        .then(([response, entry]) => newTestResult(response, entry))
+        .then(([testResult, response, entry]) =>
+            beforeBeacon(testResult, response, entry),
+        )
         .then((testResult) => sendBeacon(testResult))
         .then((testResult) => afterTest(testResult))
         .catch((reason) => {
