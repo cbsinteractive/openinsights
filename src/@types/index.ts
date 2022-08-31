@@ -1,5 +1,3 @@
-// export { KnownErrors } from "../lib/errors"
-
 // /**
 //  * An interface representing the result of a test's setup activity.
 //  */
