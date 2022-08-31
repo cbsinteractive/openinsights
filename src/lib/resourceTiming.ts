@@ -1,59 +1,58 @@
-export class PerformanceEntryManagerInitializedMultipleTimes extends Error {
-    constructor() {
-        super("Performance entry manager initialized multiple times")
+export class RegisteredCallbackNotConsumedError extends Error {
+    constructor(private _previousCallbackBundle: RegisteredCallbackBundle) {
+        super("The previous callback was not consumed")
         Object.setPrototypeOf(this, new.target.prototype)
+    }
+
+    get previousCallback() {
+        return this._previousCallbackBundle
     }
 }
 
-export class PerformanceEntryManagerNotInitialized extends Error {
-    constructor() {
-        super("Performance entry manager not initialized")
-        Object.setPrototypeOf(this, new.target.prototype)
-    }
+export type RegisteredCallbackBundle = {
+    /**
+     * The URL of the Resource Timing entry to find.
+     */
+    url: string
+    /**
+     * Consumers use the callback to validate and process the
+     * Resource Timing entry.
+     */
+    callback: (entry: PerformanceEntry) => void
+    registeredAt: Date
+}
+
+type Dependencies = {
+    newDate: () => Date
+    newPerformanceObserver: (
+        callback: PerformanceObserverCallback,
+    ) => PerformanceObserver
 }
 
 export class PerformanceEntryManager {
     private _observer
-    private _consumers: {
-        /**
-         * The URL of the Resource Timing entry to find.
-         */
-        url: string
-        /**
-         * Consumers use the callback to validate and process the
-         * Resource Timing entry.
-         */
-        callback: (entry: PerformanceEntry) => void
-    }[] = []
-    constructor(
-        newPerformanceObserver: (
-            callback: PerformanceObserverCallback,
-        ) => PerformanceObserver,
-    ) {
-        this._observer = newPerformanceObserver((entries) => {
-            entries.getEntriesByType("resource").forEach((entry) => {
-                // Test the resource "name" to see if any consumers have
-                // registered an interest in it.
-                const countOfConsumersBefore = this._consumers.length
-                const interestedConsumers = this._consumers.filter(
-                    (consumer) => consumer.url === entry.name,
-                )
-                interestedConsumers.forEach((consumer) => {
-                    consumer.callback(entry)
-                })
-                // `indexOf` uses strict equality. For object operands, that's
-                // true only if both refer to the same object.
-                this._consumers = this._consumers.filter(
-                    (consumer) => interestedConsumers.indexOf(consumer) === -1,
-                )
-                const countOfConsumersAfter = this._consumers.length
-                console.log(
-                    `Performance Entry Manager: consumer count diff: ${
-                        countOfConsumersAfter - countOfConsumersBefore
-                    }`,
-                )
-            })
-        })
+    private _callbackBundle?: RegisteredCallbackBundle
+    constructor(private _dependencies: Dependencies) {
+        this._observer = this._dependencies.newPerformanceObserver(
+            (entries) => {
+                if (this._callbackBundle != undefined) {
+                    // Note that getEntriesByType *can* produce multiple
+                    // records for the same URL. However, this would be
+                    // considered pathological input indicating a problem
+                    // with the way measurements are being taken, so we
+                    // prefer not to check for that possibility here.
+                    const entry = entries
+                        .getEntriesByType("resource")
+                        .find(
+                            (entry) => this._callbackBundle?.url === entry.name,
+                        )
+                    if (entry != undefined) {
+                        this._callbackBundle.callback(entry)
+                        delete this._callbackBundle
+                    }
+                }
+            },
+        )
         this._observer.observe({
             type: "resource",
             // Disregard entries buffered before the observer was created
@@ -70,18 +69,21 @@ export class PerformanceEntryManager {
         performance.clearResourceTimings()
     }
 
+    /**
+     * Set the URL that the consumer is interested in and a callback to be
+     * executed when it is observed.
+     * @param url The precise URL of interest.
+     * @param callback A callback to be executed when the registered URL
+     * is observed.
+     */
     registerCallback(url: string, callback: (entry: PerformanceEntry) => void) {
-        // Need some kind of defensive logic to prevent a memory leak here
-        console.warn("TODO: Implement better callback cache guard")
-        if (this._consumers.length < 5) {
-            this._consumers.push({
-                url,
-                callback,
-            })
-        } else {
-            throw new Error(
-                `Too many registered consumers (${this._consumers.length})`,
-            )
+        if (this._callbackBundle) {
+            throw new RegisteredCallbackNotConsumedError(this._callbackBundle)
+        }
+        this._callbackBundle = {
+            url,
+            callback,
+            registeredAt: this._dependencies.newDate(),
         }
     }
 }
