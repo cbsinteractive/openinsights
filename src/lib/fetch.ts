@@ -40,7 +40,41 @@ interface Dependencies {
     setTimeout: (fn: () => void, timeout: number) => number
 }
 
-export function fetch<T extends FetchTestResultBundle>(
+export async function fetch<T extends FetchTestResultBundle>(
+    dependencies: Dependencies,
+    url: string,
+    fetchTimeout: number,
+    requestHeaders: Record<string, string> | null,
+    beforeTest: () => Promise<T>,
+    /**
+     * A callback giving the client an opportunity to produce update their
+     * test result based on the Response object and the Resource Timing entry.
+     */
+    beforeBeacon: (
+        testResult: T,
+        response: Response,
+        performanceEntry: PerformanceEntry,
+    ) => Promise<T>,
+    sendBeacon: (testResult: T) => Promise<T>,
+    afterTest: (testResult: T) => Promise<T>,
+    onError: (error: unknown) => void,
+) {
+    try {
+        let testResult = await beforeTest()
+        const response = await fetchObject(
+            dependencies,
+            url,
+            fetchTimeout,
+            requestHeaders,
+            testResult,
+        )
+        const entry = await findEntry(0, 1000, 5)
+    } catch (e) {
+        onError(e)
+    }
+}
+
+export function _fetch<T extends FetchTestResultBundle>(
     dependencies: Dependencies,
     url: string,
     fetchTimeout: number,
@@ -158,4 +192,29 @@ function fetchObject<T extends FetchTestResultBundle>(
             console.log("Blob received. Returning response")
             return response
         })
+}
+
+function findEntry(
+    tryNumber: number,
+    delay: number,
+    maxRetries: number,
+    foundEntry?: PerformanceEntry,
+) {
+    console.log(`findEntry (try ${tryNumber}, found ${foundEntry})`)
+    return foundEntry
+        ? Promise.resolve(foundEntry)
+        : new Promise<PerformanceEntry>((resolve, reject) =>
+              setTimeout(() => {
+                  if (foundEntry) {
+                      console.log("Found after delay")
+                      resolve(foundEntry)
+                  } else if (tryNumber >= maxRetries) {
+                      reject(`Entry not found after ${tryNumber} tries`)
+                  } else {
+                      findEntry(tryNumber + 1, 1000, maxRetries)
+                          .then((entry) => resolve(entry))
+                          .catch((reason) => reject(reason))
+                  }
+              }, delay),
+          )
 }
