@@ -54,7 +54,7 @@ export function fetch<T extends FetchTestResultBundle>(
         testResult: T,
         response: Response,
         performanceEntry: PerformanceEntry,
-    ) => T,
+    ) => Promise<T>,
     sendBeacon: (testResult: T) => Promise<T>,
     afterTest: (testResult: T) => Promise<T>,
     onError: (error: string) => void,
@@ -98,8 +98,9 @@ export function fetch<T extends FetchTestResultBundle>(
         .then((testResult) => sendBeacon(testResult))
         .then((testResult) => afterTest(testResult))
         .catch((reason) => {
+            // If we get h
             onError(reason)
-            return Promise.reject(reason)
+            // return Promise.reject(reason)
         })
 
     function findEntry(tryNumber: number, delay: number) {
@@ -130,6 +131,7 @@ function fetchObject<T extends FetchTestResultBundle>(
     requestHeaders: Record<string, string> | null,
     testResults: T,
 ): Promise<Response> {
+    throw new Error("Oh noes!")
     const abortController = new AbortController()
     const timeoutID = dependencies.setTimeout(() => {
         abortController.abort()
