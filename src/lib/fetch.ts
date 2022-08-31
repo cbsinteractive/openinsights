@@ -61,6 +61,9 @@ export function fetch<T extends FetchTestResultBundle>(
 ): Promise<T> {
     let foundEntry: PerformanceEntry
     dependencies.performanceEntryManager.registerCallback(url, (entry) => {
+        console.log(
+            `Performance observer consumer callback found ${entry.name}`,
+        )
         foundEntry = entry
     })
     const maxRetries = 5

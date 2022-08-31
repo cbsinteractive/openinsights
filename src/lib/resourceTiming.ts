@@ -34,14 +34,11 @@ export class PerformanceEntryManager {
             entries.getEntriesByType("resource").forEach((entry) => {
                 // Test the resource "name" to see if any consumers have
                 // registered an interest in it.
-                console.log(
-                    `Count of consumers before: ${this._consumers.length}`,
-                )
+                const countOfConsumersBefore = this._consumers.length
                 const interestedConsumers = this._consumers.filter(
                     (consumer) => consumer.url === entry.name,
                 )
                 interestedConsumers.forEach((consumer) => {
-                    console.log(`Found: ${consumer.url}`)
                     consumer.callback(entry)
                 })
                 // `indexOf` uses strict equality. For object operands, that's
@@ -49,8 +46,11 @@ export class PerformanceEntryManager {
                 this._consumers = this._consumers.filter(
                     (consumer) => interestedConsumers.indexOf(consumer) === -1,
                 )
+                const countOfConsumersAfter = this._consumers.length
                 console.log(
-                    `Count of consumers after: ${this._consumers.length}`,
+                    `Performance Entry Manager: consumer count diff: ${
+                        countOfConsumersAfter - countOfConsumersBefore
+                    }`,
                 )
             })
         })
@@ -66,13 +66,14 @@ export class PerformanceEntryManager {
     }
 
     onResourceTimingBufferFull(performance: Performance) {
+        console.log("Clearing Resource Timing buffer")
         performance.clearResourceTimings()
     }
 
     registerCallback(url: string, callback: (entry: PerformanceEntry) => void) {
         // Need some kind of defensive logic to prevent a memory leak here
         console.warn("TODO: Implement better callback cache guard")
-        if (this._consumers.length < 10) {
+        if (this._consumers.length < 5) {
             this._consumers.push({
                 url,
                 callback,
