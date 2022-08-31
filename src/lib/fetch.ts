@@ -98,9 +98,8 @@ export function fetch<T extends FetchTestResultBundle>(
         .then((testResult) => sendBeacon(testResult))
         .then((testResult) => afterTest(testResult))
         .catch((reason) => {
-            // If we get h
             onError(reason)
-            // return Promise.reject(reason)
+            return Promise.reject(reason)
         })
 
     function findEntry(tryNumber: number, delay: number) {
