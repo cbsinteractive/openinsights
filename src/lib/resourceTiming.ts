@@ -25,7 +25,7 @@ export class PerformanceEntryAwaitTimeout extends Error {
     }
 }
 
-export type RegisteredCallbackBundle = {
+type RegisteredCallbackBundle = {
     /**
      * The URL of the Resource Timing entry to find.
      */
@@ -151,7 +151,7 @@ export class EntryAwaiter {
                     resolve(this._entry)
                 }),
                 new Promise((resolve) =>
-                    this._setTimeout(resolve as () => void, 10),
+                    this._setTimeout(resolve as () => void, 100),
                 ),
             ])
             if (result[0]) {
@@ -161,6 +161,9 @@ export class EntryAwaiter {
             console.log(`Diff ${diff}`)
         } while (!entry && diff < this._maxWait)
         this._performanceEntryManager.unregisterCallback(this._url)
-        return entry
+        if (entry) {
+            return entry
+        }
+        throw new PerformanceEntryAwaitTimeout(this._url, diff)
     }
 }

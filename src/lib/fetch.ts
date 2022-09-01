@@ -8,29 +8,10 @@ export interface FetchConfiguration {
      * Time to wait before aborting fetch, in milliseconds.
      */
     timeout: number
-    /**
-     * PerformanceObserver timeout in milliseconds.
-     */
-    performanceTimingObserverTimeout: number
 }
 
 export interface FetchTestResultBundle {
     timeoutTriggered: boolean
-}
-
-export class ResponseError extends Error {
-    constructor(private _url: string, private _status: number) {
-        super(`Error downloading ${_url} (HTTP status ${_status})`)
-        Object.setPrototypeOf(this, new.target.prototype)
-    }
-
-    get status() {
-        return this._status
-    }
-
-    get url() {
-        return this._url
-    }
 }
 
 interface Dependencies {
@@ -63,7 +44,7 @@ export async function fetch<T extends FetchTestResultBundle>(
 ) {
     try {
         const entryAwaiter = new EntryAwaiter(
-            url + "foo",
+            url,
             dependencies.performanceEntryManager,
             2000,
             dependencies.newDate,
@@ -85,12 +66,12 @@ export async function fetch<T extends FetchTestResultBundle>(
             afterTest(testResult)
         }
     } catch (e) {
+        // Swallow errors but provide caller with an opportunity to respond
         onError(e)
-        debugger
     }
 }
 
-function fetchObject<T extends FetchTestResultBundle>(
+async function fetchObject<T extends FetchTestResultBundle>(
     dependencies: Dependencies,
     url: string,
     fetchTimeout: number,
@@ -100,7 +81,6 @@ function fetchObject<T extends FetchTestResultBundle>(
     const abortController = new AbortController()
     const timeoutID = dependencies.setTimeout(() => {
         abortController.abort()
-        console.warn("Fetch aborted")
         testResults.timeoutTriggered = true
     }, fetchTimeout)
     const options: RequestInit = {
@@ -112,13 +92,8 @@ function fetchObject<T extends FetchTestResultBundle>(
     if (requestHeaders) {
         options.headers = { ...requestHeaders }
     }
-    return dependencies
-        .fetch(url, options)
-        .then((response) => {
-            return Promise.all([Promise.resolve(response), response.blob()])
-        })
-        .then(([response, _blob]) => {
-            dependencies.clearTimeout(timeoutID)
-            return response
-        })
+    const response = await dependencies.fetch(url, options)
+    await response.blob()
+    dependencies.clearTimeout(timeoutID)
+    return response
 }

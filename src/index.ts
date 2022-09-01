@@ -32,16 +32,12 @@
  * @packageDocumentation
  */
 
-// Types
-export * from "./@types"
-// Init
-export { default as init } from "./init"
+export type { Executable } from "./@types"
+export { init } from "./init"
 export { fetch } from "./lib/fetch"
-// Libs
 export type { FetchConfiguration, FetchTestResultBundle } from "./lib/fetch"
-export { default as getNetworkInformation } from "./lib/getNetworkInformation"
-export { PerformanceEntryManager } from "./lib/resourceTiming"
-export { BeaconHandler } from "./util/beaconHandler"
-export { getClientInfo } from "./util/clientInfo"
-export type { ClientInfo } from "./util/clientInfo"
-export { GetBeaconHandler } from "./util/getBeaconHandler"
+export {
+    PerformanceEntryAwaitTimeout,
+    PerformanceEntryManager,
+    RegisteredCallbackNotConsumedError,
+} from "./lib/resourceTiming"

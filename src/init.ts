@@ -13,7 +13,7 @@ import whenReady from "./util/loadWhenDocumentReady"
  * determined by the tag owner at runtime, so may be used to specify page-level
  * overrides to general defaults.
  */
-export default function init(
+export function init(
     sessionConfigDelay: number,
     sessionStartupFuncs: SessionStartupFuncs[],
 ): Promise<SessionResult> {
