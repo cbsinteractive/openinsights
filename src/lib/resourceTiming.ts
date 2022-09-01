@@ -1,11 +1,27 @@
 export class RegisteredCallbackNotConsumedError extends Error {
-    constructor(private _previousCallbackBundle: RegisteredCallbackBundle) {
-        super("The previous callback was not consumed")
+    constructor(private _url: string) {
+        super(`The callback for ${_url} was not consumed`)
         Object.setPrototypeOf(this, new.target.prototype)
     }
 
-    get previousCallback() {
-        return this._previousCallbackBundle
+    get url() {
+        return this._url
+    }
+}
+
+export class PerformanceEntryAwaitTimeout extends Error {
+    constructor(private _url: string, private _duration: number) {
+        super(
+            `Failed to find an entry for ${_url} after ${_duration} milliseconds`,
+        )
+        Object.setPrototypeOf(this, new.target.prototype)
+    }
+
+    get url() {
+        return this._url
+    }
+    get duration() {
+        return this._duration
     }
 }
 
@@ -77,13 +93,74 @@ export class PerformanceEntryManager {
      * is observed.
      */
     registerCallback(url: string, callback: (entry: PerformanceEntry) => void) {
+        console.log(`Registering callback for ${url}`)
         if (this._callbackBundle) {
-            throw new RegisteredCallbackNotConsumedError(this._callbackBundle)
+            throw new RegisteredCallbackNotConsumedError(
+                this._callbackBundle.url,
+            )
         }
         this._callbackBundle = {
             url,
             callback,
             registeredAt: this._dependencies.newDate(),
         }
+    }
+
+    unregisterCallback(url: string) {
+        if (this._callbackBundle && this._callbackBundle.url === url) {
+            delete this._callbackBundle
+            console.log(`Unregistered callback for ${url}`)
+        }
+    }
+}
+
+/**
+ * A class to manage waiting for a certain `PerformanceEntry` to appear in the
+ * Resource Timing buffer.
+ *
+ * Please note that observation begins in the constructor. Create an
+ * `EntryAwaiter` *before* you expect the item to appear in the buffer.
+ */
+export class EntryAwaiter {
+    private _entry?: PerformanceEntry
+    constructor(
+        private _url: string,
+        private _performanceEntryManager: PerformanceEntryManager,
+        private _maxWait: number,
+        private _newDate: () => Date,
+        private _setTimeout: (fn: () => void, timeout: number) => number,
+    ) {
+        _performanceEntryManager.registerCallback(_url, (entry) => {
+            console.log(
+                `Performance observer consumer callback found ${entry.name}`,
+            )
+            this._entry = entry
+        })
+    }
+
+    async awaitEntry() {
+        if (this._entry) {
+            return this._entry
+        }
+        const beganAt = this._newDate().getTime()
+        let diff: number
+        let entry: PerformanceEntry | undefined
+        do {
+            const result = await Promise.all([
+                new Promise((resolve: (entry?: PerformanceEntry) => void) => {
+                    resolve(this._entry)
+                }),
+                new Promise((resolve) =>
+                    this._setTimeout(resolve as () => void, 10),
+                ),
+            ])
+            if (result[0]) {
+                entry = result[0]
+            }
+            diff = this._newDate().getTime() - beganAt
+            console.log(`Diff ${diff}`)
+        } while (!entry && diff < this._maxWait)
+        this._performanceEntryManager.unregisterCallback(this._url)
+        return entry
     }
 }
