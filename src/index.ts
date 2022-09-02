@@ -35,6 +35,7 @@
 export type { Executable } from "./@types"
 export { init } from "./init"
 export { fetch } from "./lib/fetch"
+export type { FetchTestResult } from "./lib/fetch"
 export {
     PerformanceEntryAwaitTimeout,
     PerformanceEntryManager,

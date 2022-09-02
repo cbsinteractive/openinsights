@@ -81,6 +81,13 @@ export class PerformanceEntryManager {
     }
 
     onResourceTimingBufferFull(performance: Performance) {
+        // Testing suggests that Firefox is the only major browser that stops
+        // emitting events when new objects arrive that can't be buffered.
+        // If that's the case, it might be better to tailor a solution for
+        // that scenario.
+        console.warn(
+            "TODO: Clearing Resource Timing buffer may not be necessary",
+        )
         console.warn("Clearing Resource Timing buffer")
         performance.clearResourceTimings()
     }

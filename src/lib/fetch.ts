@@ -8,6 +8,13 @@ interface Dependencies {
     setTimeout: (fn: () => void, timeout: number) => number
 }
 
+export type FetchTestResult = {
+    status?: number
+    error?: unknown
+    timeout: boolean
+    entry?: PerformanceEntry
+}
+
 /**
  * An asynchronous function encapsulating a configurable test based on the
  * [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API).
@@ -22,14 +29,10 @@ interface Dependencies {
  * entry. This *might* involve network activity, so it returns a promise.
  * @param sendBeacon
  * @param afterTest
- * @param timeoutCallback A callback invoked if the download is cancelled due
- * to the maximum allowed duration being reached.
- * @param fetchError A callback invoked if any error is encountered *during*
- * the fetch request.
  * @param onError A callback invoked if any error is encounter *outside of*
  * the fetch request context.
  */
-export async function fetch<T>(
+export async function fetch<T extends FetchTestResult>(
     dependencies: Dependencies,
     url: string,
     fetchTimeout: number,
@@ -38,12 +41,13 @@ export async function fetch<T>(
     beforeBeacon: (
         result: T,
         response: Response,
+        /**
+         * The performance timeline entry for the caller to validate.
+         */
         performanceEntry: PerformanceEntry,
     ) => Promise<void>,
     sendBeacon: (result: T) => void,
     afterTest: (result: T) => void,
-    timeoutCallback: (result: T) => void,
-    fetchError: (result: T, e: unknown) => void,
     onError: (error: unknown) => void,
 ) {
     try {
@@ -61,12 +65,11 @@ export async function fetch<T>(
             fetchTimeout,
             requestHeaders,
             result,
-            timeoutCallback,
-            fetchError,
         )
         if (response) {
             const entry = await entryAwaiter.awaitEntry()
             if (entry) {
+                result.entry = entry
                 // Give the caller an opportunity to adorn the result based
                 // on the response and performance entry
                 await beforeBeacon(result, response, entry)
@@ -80,14 +83,12 @@ export async function fetch<T>(
     }
 }
 
-async function fetchObject<T>(
+async function fetchObject<T extends FetchTestResult>(
     dependencies: Dependencies,
     url: string,
     fetchTimeout: number,
     requestHeaders: Record<string, string> | null,
     result: T,
-    timeoutCallback: (result: T) => void,
-    errorCallback: (result: T, e: unknown) => void,
 ) {
     const abortController = new AbortController()
     const timeoutID = dependencies.setTimeout(() => {
@@ -95,12 +96,11 @@ async function fetchObject<T>(
         dependencies.performanceEntryManager.unregisterCallback(url)
         // Force download to abort
         abortController.abort()
-        // Notify caller of the event
-        timeoutCallback(result)
+        result.timeout = true
     }, fetchTimeout)
     const options: RequestInit = {
         method: "GET",
-        // explicitly prevent request from outliving the page
+        // Explicitly prevent request from outliving the page
         keepalive: false,
         signal: abortController.signal,
     }
@@ -109,12 +109,12 @@ async function fetchObject<T>(
     }
     try {
         const response = await dependencies.fetch(url, options)
+        result.status = response.status
         await response.blob()
         dependencies.clearTimeout(timeoutID)
         return response
     } catch (e) {
-        // Swallow any error, but provide caller with an opportunity
-        // to handle it
-        errorCallback(result, e)
+        // Let caller handle the error later
+        result.error = e
     }
 }
