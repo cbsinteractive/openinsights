@@ -8,17 +8,33 @@ interface Dependencies {
     setTimeout: (fn: () => void, timeout: number) => number
 }
 
+/**
+ * An asynchronous function encapsulating a configurable test based on the
+ * [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API).
+ *
+ * @param dependencies
+ * @param url
+ * @param fetchTimeout
+ * @param requestHeaders
+ * @param beforeTest
+ * @param beforeBeacon A callback giving the client an opportunity to produce
+ * update their test result based on the Response object and the Resource Timing
+ * entry. This *might* involve network activity, so it returns a promise.
+ * @param sendBeacon
+ * @param afterTest
+ * @param timeoutCallback A callback invoked if the download is cancelled due
+ * to the maximum allowed duration being reached.
+ * @param fetchError A callback invoked if any error is encountered *during*
+ * the fetch request.
+ * @param onError A callback invoked if any error is encounter *outside of*
+ * the fetch request context.
+ */
 export async function fetch<T>(
     dependencies: Dependencies,
     url: string,
     fetchTimeout: number,
     requestHeaders: Record<string, string> | null,
     beforeTest: () => Promise<T>,
-    /**
-     * A callback giving the client an opportunity to produce update their
-     * test result based on the Response object and the Resource Timing entry.
-     * This *might* involve network activity, so it returns a promise.
-     */
     beforeBeacon: (
         result: T,
         response: Response,
@@ -26,8 +42,9 @@ export async function fetch<T>(
     ) => Promise<void>,
     sendBeacon: (result: T) => void,
     afterTest: (result: T) => void,
-    onError: (error: unknown) => void,
     timeoutCallback: (result: T) => void,
+    fetchError: (result: T, e: unknown) => void,
+    onError: (error: unknown) => void,
 ) {
     try {
         const entryAwaiter = new EntryAwaiter(
@@ -45,17 +62,17 @@ export async function fetch<T>(
             requestHeaders,
             result,
             timeoutCallback,
+            fetchError,
         )
         if (response) {
             const entry = await entryAwaiter.awaitEntry()
             if (entry) {
+                // Give the caller an opportunity to adorn the result based
+                // on the response and performance entry
                 await beforeBeacon(result, response, entry)
-                sendBeacon(result)
             }
         }
-        // Ensure that the caller gets to run any clean-up code even if
-        // the fetch was unsuccessful. This might include beaconing some
-        // kind of error result.
+        sendBeacon(result)
         afterTest(result)
     } catch (e) {
         // Swallow errors but provide caller with an opportunity to respond
@@ -70,6 +87,7 @@ async function fetchObject<T>(
     requestHeaders: Record<string, string> | null,
     result: T,
     timeoutCallback: (result: T) => void,
+    errorCallback: (result: T, e: unknown) => void,
 ) {
     const abortController = new AbortController()
     const timeoutID = dependencies.setTimeout(() => {
@@ -95,7 +113,8 @@ async function fetchObject<T>(
         dependencies.clearTimeout(timeoutID)
         return response
     } catch (e) {
-        console.warn(e)
-        // Swallow errors
+        // Swallow any error, but provide caller with an opportunity
+        // to handle it
+        errorCallback(result, e)
     }
 }

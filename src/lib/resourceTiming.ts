@@ -81,7 +81,7 @@ export class PerformanceEntryManager {
     }
 
     onResourceTimingBufferFull(performance: Performance) {
-        console.log("Clearing Resource Timing buffer")
+        console.warn("Clearing Resource Timing buffer")
         performance.clearResourceTimings()
     }
 
@@ -134,12 +134,10 @@ export class EntryAwaiter {
         private _newDate: () => Date,
         private _setTimeout: (fn: () => void, timeout: number) => number,
     ) {
-        _performanceEntryManager.registerCallback(_url, (entry) => {
-            console.log(
-                `Performance observer consumer callback found ${entry.name}`,
-            )
-            this._entry = entry
-        })
+        _performanceEntryManager.registerCallback(
+            _url,
+            (entry) => (this._entry = entry),
+        )
     }
 
     async awaitEntry() {
@@ -162,7 +160,6 @@ export class EntryAwaiter {
                 entry = result[0]
             }
             diff = this._newDate().getTime() - beganAt
-            console.log(`Diff ${diff}`)
         } while (!entry && diff < this._maxWait)
         this._performanceEntryManager.unregisterCallback(this._url)
         if (entry) {
