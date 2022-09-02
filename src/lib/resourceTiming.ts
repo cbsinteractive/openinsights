@@ -106,6 +106,10 @@ export class PerformanceEntryManager {
         }
     }
 
+    /**
+     * Clear the registered callback if it matches the given URL.
+     * @param url
+     */
     unregisterCallback(url: string) {
         if (this._callbackBundle && this._callbackBundle.url === url) {
             delete this._callbackBundle

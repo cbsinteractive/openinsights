@@ -1,19 +1,5 @@
 import { EntryAwaiter, PerformanceEntryManager } from "./resourceTiming"
 
-/**
- * Contains common fetch configuration attributes
- */
-export interface FetchConfiguration {
-    /**
-     * Time to wait before aborting fetch, in milliseconds.
-     */
-    timeout: number
-}
-
-export interface FetchTestResultBundle {
-    timeoutTriggered: boolean
-}
-
 interface Dependencies {
     clearTimeout: (timeoutID: number) => void
     fetch: (url: string, options?: RequestInit) => Promise<Response>
@@ -22,7 +8,7 @@ interface Dependencies {
     setTimeout: (fn: () => void, timeout: number) => number
 }
 
-export async function fetch<T extends FetchTestResultBundle>(
+export async function fetch<T>(
     dependencies: Dependencies,
     url: string,
     fetchTimeout: number,
@@ -34,13 +20,14 @@ export async function fetch<T extends FetchTestResultBundle>(
      * This *might* involve network activity, so it returns a promise.
      */
     beforeBeacon: (
-        testResult: T,
+        result: T,
         response: Response,
         performanceEntry: PerformanceEntry,
     ) => Promise<void>,
-    sendBeacon: (testResult: T) => void,
-    afterTest: (testResult: T) => void,
+    sendBeacon: (result: T) => void,
+    afterTest: (result: T) => void,
     onError: (error: unknown) => void,
+    timeoutCallback: (result: T) => void,
 ) {
     try {
         const entryAwaiter = new EntryAwaiter(
@@ -50,38 +37,48 @@ export async function fetch<T extends FetchTestResultBundle>(
             dependencies.newDate,
             dependencies.setTimeout,
         )
-        const testResult = await beforeTest()
+        const result = await beforeTest()
         const response = await fetchObject(
             dependencies,
             url,
             fetchTimeout,
             requestHeaders,
-            testResult,
+            result,
+            timeoutCallback,
         )
-        const entry = await entryAwaiter.awaitEntry()
-        if (entry) {
-            console.log("Finished await entryAwaiter.awaitEntry()")
-            await beforeBeacon(testResult, response, entry)
-            sendBeacon(testResult)
-            afterTest(testResult)
+        if (response) {
+            const entry = await entryAwaiter.awaitEntry()
+            if (entry) {
+                await beforeBeacon(result, response, entry)
+                sendBeacon(result)
+            }
         }
+        // Ensure that the caller gets to run any clean-up code even if
+        // the fetch was unsuccessful. This might include beaconing some
+        // kind of error result.
+        afterTest(result)
     } catch (e) {
         // Swallow errors but provide caller with an opportunity to respond
         onError(e)
     }
 }
 
-async function fetchObject<T extends FetchTestResultBundle>(
+async function fetchObject<T>(
     dependencies: Dependencies,
     url: string,
     fetchTimeout: number,
     requestHeaders: Record<string, string> | null,
-    testResults: T,
-): Promise<Response> {
+    result: T,
+    timeoutCallback: (result: T) => void,
+) {
     const abortController = new AbortController()
     const timeoutID = dependencies.setTimeout(() => {
+        // De-register pending callback
+        dependencies.performanceEntryManager.unregisterCallback(url)
+        // Force download to abort
         abortController.abort()
-        testResults.timeoutTriggered = true
+        // Notify caller of the event
+        timeoutCallback(result)
     }, fetchTimeout)
     const options: RequestInit = {
         method: "GET",
@@ -92,8 +89,13 @@ async function fetchObject<T extends FetchTestResultBundle>(
     if (requestHeaders) {
         options.headers = { ...requestHeaders }
     }
-    const response = await dependencies.fetch(url, options)
-    await response.blob()
-    dependencies.clearTimeout(timeoutID)
-    return response
+    try {
+        const response = await dependencies.fetch(url, options)
+        await response.blob()
+        dependencies.clearTimeout(timeoutID)
+        return response
+    } catch (e) {
+        console.warn(e)
+        // Swallow errors
+    }
 }
