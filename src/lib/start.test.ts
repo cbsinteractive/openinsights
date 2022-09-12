@@ -7,7 +7,7 @@ test("start", async () => {
             return Promise.resolve("some session config")
         },
         produceExecutables: function (
-            sessionConfiguration: unknown,
+            _sessionConfiguration: unknown,
         ): Executable[] {
             return []
         },
@@ -21,7 +21,7 @@ test("start later", async () => {
             return Promise.resolve("some session config")
         },
         produceExecutables: function (
-            sessionConfiguration: unknown,
+            _sessionConfiguration: unknown,
         ): Executable[] {
             return []
         },

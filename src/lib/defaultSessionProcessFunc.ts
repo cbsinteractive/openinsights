@@ -1,4 +1,4 @@
-import { Executable, SessionProcessFunc } from "../@types"
+import { Executable } from "../@types"
 import sequence from "./promiseSequence"
 
 /**
