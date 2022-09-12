@@ -1,5 +1,5 @@
 import { Executable, SessionResult, SessionStartupFuncs } from "../@types"
-import defaultSessionProcessFunc from "../util/defaultSessionProcessFunc"
+import defaultSessionProcessFunc from "./defaultSessionProcessFunc"
 
 /**
  * Called internally if a non-zero {@link ClientSettings.preConfigStartDelay}
