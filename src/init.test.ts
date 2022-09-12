@@ -28,7 +28,7 @@ tests.forEach((t) => {
     test(t.description, async () => {
         const mockLoadWhenReady = loadWhenReady as jest.Mock
         mockLoadWhenReady.mockResolvedValue(undefined)
-        await init(t.sessionConfigDelay, [])
+        await init({} as Document, t.sessionConfigDelay, [])
         if (t.callsStart) {
             expect(start).toHaveBeenCalled()
         } else {
