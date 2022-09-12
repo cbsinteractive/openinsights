@@ -14,11 +14,15 @@ import { loadWhenReady } from "./lib/whenDocumentReady"
  * overrides to general defaults.
  */
 export function init(
-    document: Document,
+    getDocumentReadyState: () => DocumentReadyState,
+    addDocumentReadyStateChangeListener: (callback: () => void) => void,
     sessionConfigDelay: number,
     sessionStartupFuncs: SessionStartupFuncs[],
 ): Promise<SessionResult> {
-    return loadWhenReady(document).then(() => {
+    return loadWhenReady(
+        getDocumentReadyState,
+        addDocumentReadyStateChangeListener,
+    ).then(() => {
         if (sessionConfigDelay) {
             return startLater(sessionConfigDelay, sessionStartupFuncs)
         }

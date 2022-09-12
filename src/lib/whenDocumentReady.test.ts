@@ -1,43 +1,25 @@
 import { loadWhenReady } from "./whenDocumentReady"
 
 test("initially complete", async () => {
-    await loadWhenReady({ readyState: "complete" } as Document)
+    await loadWhenReady(
+        () => "complete",
+        () => {},
+    )
 })
 
 test("initially loading", async () => {
-    const fakeDocument = {
-        addEventListener: jest.fn(),
-        readyState: "loading",
-    }
-    const result = loadWhenReady(fakeDocument as unknown as Document)
-    const forceUpdatable = fakeDocument as { readyState: string }
-    forceUpdatable.readyState = "complete"
-    const callback = fakeDocument.addEventListener.mock.calls[0][1]
-    callback()
-    await result
+    const mockGetReadyState = jest.fn()
+    mockGetReadyState.mockReturnValueOnce("loading")
+    mockGetReadyState.mockReturnValueOnce("complete")
+    const mockAddReadyStateChangeListener = jest.fn()
+    // Don't await this right await because we want to access the event-handling code
+    const loadReadyResult = loadWhenReady(
+        mockGetReadyState,
+        mockAddReadyStateChangeListener,
+    )
+    const eventHandler = mockAddReadyStateChangeListener.mock.calls[0][0]
+    eventHandler()
+    await loadReadyResult
+    expect(mockGetReadyState).toHaveBeenCalledTimes(2)
+    expect(mockAddReadyStateChangeListener).toHaveBeenCalledTimes(1)
 })
-
-// describe("loadWhenDocumentReady", () => {
-//     test("readyState complete initially", () => {
-//         return loadWhenReady().then(() => {
-//             // do nothing
-//         })
-//     })
-//     test("readyState loading initially", (done) => {
-//         let calls = 0
-//         Object.defineProperty(document, "readyState", {
-//             get() {
-//                 let result: "complete" | "loading" = "loading"
-//                 if (++calls > 2) {
-//                     result = "complete"
-//                 }
-//                 return result
-//             },
-//         })
-//         loadWhenReady().then(() => {
-//             done()
-//         })
-//         document.dispatchEvent(new Event("readystatechange"))
-//         document.dispatchEvent(new Event("readystatechange"))
-//     })
-// })
