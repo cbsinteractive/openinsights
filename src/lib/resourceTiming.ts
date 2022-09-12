@@ -45,7 +45,19 @@ type Dependencies = {
     ) => PerformanceObserver
 }
 
-export class PerformanceEntryManager {
+export interface PerformanceEntryManagerInterface {
+    disconnectObserver(): void
+    onResourceTimingBufferFull(performance: Performance): void
+    registerCallback(
+        url: string,
+        callback: (entry: PerformanceEntry) => void,
+    ): void
+    unregisterCallback(url: string): void
+}
+
+export class PerformanceEntryManager
+    implements PerformanceEntryManagerInterface
+{
     private _observer
     private _callbackBundle?: RegisteredCallbackBundle
     constructor(private _dependencies: Dependencies) {
@@ -136,7 +148,7 @@ export class EntryAwaiter {
     private _entry?: PerformanceEntry
     constructor(
         private _url: string,
-        private _performanceEntryManager: PerformanceEntryManager,
+        private _performanceEntryManager: PerformanceEntryManagerInterface,
         private _maxWait: number,
         private _newDate: () => Date,
         private _setTimeout: (fn: () => void, timeout: number) => number,

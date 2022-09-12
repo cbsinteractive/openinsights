@@ -1,10 +1,13 @@
-import { EntryAwaiter, PerformanceEntryManager } from "./resourceTiming"
+import {
+    EntryAwaiter,
+    PerformanceEntryManagerInterface,
+} from "./resourceTiming"
 
-interface Dependencies {
+export interface Dependencies {
     clearTimeout: (timeoutID: number) => void
     fetch: (url: string, options?: RequestInit) => Promise<Response>
     newDate: () => Date
-    performanceEntryManager: PerformanceEntryManager
+    performanceEntryManager: PerformanceEntryManagerInterface
     setTimeout: (fn: () => void, timeout: number) => number
 }
 
