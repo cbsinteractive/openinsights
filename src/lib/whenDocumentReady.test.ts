@@ -1,4 +1,4 @@
-import { loadWhenReady } from "./loadWhenDocumentReady"
+import { loadWhenReady } from "./whenDocumentReady"
 
 describe("loadWhenDocumentReady", () => {
     test("readyState complete initially", () => {
