@@ -1,6 +1,6 @@
 import { SessionResult, SessionStartupFuncs } from "./@types"
 import { start, startLater } from "./lib/start"
-import whenReady from "./util/loadWhenDocumentReady"
+import { loadWhenReady } from "./util/loadWhenDocumentReady"
 
 /**
  * Called by tag owner code to initialize a RUM session, either immediately or
@@ -17,7 +17,7 @@ export function init(
     sessionConfigDelay: number,
     sessionStartupFuncs: SessionStartupFuncs[],
 ): Promise<SessionResult> {
-    return whenReady().then(() => {
+    return loadWhenReady().then(() => {
         if (sessionConfigDelay) {
             return startLater(sessionConfigDelay, sessionStartupFuncs)
         }

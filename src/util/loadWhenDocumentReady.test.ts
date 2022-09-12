@@ -1,8 +1,8 @@
-import loadWhenDocumentReady from "./loadWhenDocumentReady"
+import { loadWhenReady } from "./loadWhenDocumentReady"
 
 describe("loadWhenDocumentReady", () => {
     test("readyState complete initially", () => {
-        return loadWhenDocumentReady().then(() => {
+        return loadWhenReady().then(() => {
             // do nothing
         })
     })
@@ -17,7 +17,7 @@ describe("loadWhenDocumentReady", () => {
                 return result
             },
         })
-        loadWhenDocumentReady().then(() => {
+        loadWhenReady().then(() => {
             done()
         })
         document.dispatchEvent(new Event("readystatechange"))
