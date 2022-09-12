@@ -1,6 +1,6 @@
 import { SessionResult, SessionStartupFuncs } from "./@types"
+import { loadWhenReady } from "./lib/loadWhenDocumentReady"
 import { start, startLater } from "./lib/start"
-import { loadWhenReady } from "./util/loadWhenDocumentReady"
 
 /**
  * Called by tag owner code to initialize a RUM session, either immediately or

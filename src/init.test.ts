@@ -1,10 +1,9 @@
 import { init } from "./init"
+import { loadWhenReady } from "./lib/loadWhenDocumentReady"
 import { start, startLater } from "./lib/start"
-import { loadWhenReady } from "./util/loadWhenDocumentReady"
 
+jest.mock("./lib/loadWhenDocumentReady")
 jest.mock("./lib/start")
-
-jest.mock("./util/loadWhenDocumentReady")
 
 const tests = [
     {
