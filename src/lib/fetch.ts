@@ -57,7 +57,6 @@ export async function fetch<T extends FetchTestResult>(
         const entryAwaiter = new EntryAwaiter(
             url,
             dependencies.performanceEntryManager,
-            2000,
             dependencies.newDate,
             dependencies.setTimeout,
         )
@@ -82,7 +81,7 @@ export async function fetch<T extends FetchTestResult>(
         afterTest(result)
     } catch (e) {
         // Swallow errors but provide caller with an opportunity to respond
-        console.log(e)
+        console.error(e)
         onError(e)
     }
 }

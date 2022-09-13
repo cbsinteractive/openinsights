@@ -10,9 +10,13 @@ export class RegisteredCallbackNotConsumedError extends Error {
 }
 
 export class PerformanceEntryAwaitTimeout extends Error {
-    constructor(private _url: string, private _duration: number) {
+    constructor(
+        private _url: string,
+        private _duration: number,
+        private _maxWait: number,
+    ) {
         super(
-            `Failed to find an entry for ${_url} after ${_duration} milliseconds`,
+            `Failed to find an entry for ${_url} after ${_duration} milliseconds (max wait ${_maxWait})`,
         )
         Object.setPrototypeOf(this, new.target.prototype)
     }
@@ -22,6 +26,9 @@ export class PerformanceEntryAwaitTimeout extends Error {
     }
     get duration() {
         return this._duration
+    }
+    get maxWait() {
+        return this._maxWait
     }
 }
 
@@ -46,7 +53,6 @@ type Dependencies = {
 }
 
 export interface PerformanceEntryManagerInterface {
-    disconnectObserver(): void
     onResourceTimingBufferFull(performance: Performance): void
     registerCallback(
         url: string,
@@ -62,21 +68,27 @@ export class PerformanceEntryManager
     private _callbackBundle?: RegisteredCallbackBundle
     constructor(private _dependencies: Dependencies) {
         this._observer = this._dependencies.newPerformanceObserver(
-            (entries) => {
+            (entryList) => {
                 if (this._callbackBundle != undefined) {
-                    // Note that getEntriesByType *can* produce multiple
+                    // Note that getEntriesBy... *can* produce multiple
                     // records for the same URL. However, this would be
                     // considered pathological input indicating a problem
-                    // with the way measurements are being taken, so we
-                    // prefer not to check for that possibility here.
-                    const entry = entries
-                        .getEntriesByType("resource")
-                        .find(
-                            (entry) => this._callbackBundle?.url === entry.name,
+                    // with the way measurements are being taken. Therefore,
+                    // we tend to overlook that possibility.
+                    try {
+                        const entries = entryList.getEntriesByName(
+                            this._callbackBundle?.url,
+                            "resource",
                         )
-                    if (entry != undefined) {
-                        this._callbackBundle.callback(entry)
-                        delete this._callbackBundle
+                        console.log(entries)
+                        if (entries.length) {
+                            this._observer.disconnect()
+                            this._callbackBundle.callback(entries[0])
+                            delete this._callbackBundle
+                        }
+                    } catch (e) {
+                        console.error(e)
+                        throw e
                     }
                 }
             },
@@ -86,10 +98,6 @@ export class PerformanceEntryManager
             // Disregard entries buffered before the observer was created
             buffered: false,
         })
-    }
-
-    disconnectObserver() {
-        this._observer && this._observer.disconnect()
     }
 
     onResourceTimingBufferFull(performance: Performance) {
@@ -149,10 +157,10 @@ export class EntryAwaiter {
     constructor(
         private _url: string,
         private _performanceEntryManager: PerformanceEntryManagerInterface,
-        private _maxWait: number,
         private _newDate: () => Date,
         private _setTimeout: (fn: () => void, timeout: number) => number,
     ) {
+        console.log("Registering performance entry manager callback")
         _performanceEntryManager.registerCallback(_url, (entry) => {
             console.log(`Found entry! ${JSON.stringify(entry)}`)
             this._entry = entry
@@ -160,7 +168,9 @@ export class EntryAwaiter {
     }
 
     async awaitEntry() {
-        console.log(`Inside awaitEntry, entry is ${this._entry}`)
+        console.log(
+            `Inside awaitEntry, entry is ${JSON.stringify(this._entry)}`,
+        )
         if (this._entry) {
             return this._entry
         }
@@ -168,6 +178,7 @@ export class EntryAwaiter {
         console.log(`Began at: ${beganAt}`)
         let diff: number
         let entry: PerformanceEntry | undefined
+        const MAX_WAIT = 2000
         do {
             console.log("Awaiting Promise.all")
             const result = await Promise.all([
@@ -185,15 +196,15 @@ export class EntryAwaiter {
             if (result[0]) {
                 entry = result[0]
             }
-            console.log("Calculating diff")
             const newDate = this._newDate()
             console.log(newDate)
             diff = newDate.getTime() - beganAt
-        } while (!entry && diff < this._maxWait)
+            console.log(`Calculated diff ${diff} milliseconds`)
+        } while (!entry && diff < MAX_WAIT)
         this._performanceEntryManager.unregisterCallback(this._url)
         if (entry) {
             return entry
         }
-        throw new PerformanceEntryAwaitTimeout(this._url, diff)
+        throw new PerformanceEntryAwaitTimeout(this._url, diff, MAX_WAIT)
     }
 }
