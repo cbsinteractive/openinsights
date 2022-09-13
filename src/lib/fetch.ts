@@ -82,6 +82,7 @@ export async function fetch<T extends FetchTestResult>(
         afterTest(result)
     } catch (e) {
         // Swallow errors but provide caller with an opportunity to respond
+        console.log(e)
         onError(e)
     }
 }
@@ -94,6 +95,7 @@ async function fetchObject<T extends FetchTestResult>(
     result: T,
 ) {
     const abortController = new AbortController()
+    console.log("Calling setTimeout for abort controller")
     const timeoutID = dependencies.setTimeout(() => {
         // De-register pending callback
         dependencies.performanceEntryManager.unregisterCallback(url)
@@ -118,6 +120,7 @@ async function fetchObject<T extends FetchTestResult>(
         return response
     } catch (e) {
         // Let caller handle the error later
+        console.log(e)
         result.error = e
     }
 }

@@ -153,32 +153,42 @@ export class EntryAwaiter {
         private _newDate: () => Date,
         private _setTimeout: (fn: () => void, timeout: number) => number,
     ) {
-        _performanceEntryManager.registerCallback(
-            _url,
-            (entry) => (this._entry = entry),
-        )
+        _performanceEntryManager.registerCallback(_url, (entry) => {
+            console.log(`Found entry! ${JSON.stringify(entry)}`)
+            this._entry = entry
+        })
     }
 
     async awaitEntry() {
+        console.log(`Inside awaitEntry, entry is ${this._entry}`)
         if (this._entry) {
             return this._entry
         }
         const beganAt = this._newDate().getTime()
+        console.log(`Began at: ${beganAt}`)
         let diff: number
         let entry: PerformanceEntry | undefined
         do {
+            console.log("Awaiting Promise.all")
             const result = await Promise.all([
                 new Promise((resolve: (entry?: PerformanceEntry) => void) => {
                     resolve(this._entry)
                 }),
-                new Promise((resolve) =>
-                    this._setTimeout(resolve as () => void, 100),
-                ),
+                new Promise((resolve) => {
+                    console.log(
+                        "Setting timeout waiting for performance entry callback to be invoked",
+                    )
+                    this._setTimeout(resolve as () => void, 100)
+                }),
             ])
+            console.log(result)
             if (result[0]) {
                 entry = result[0]
             }
-            diff = this._newDate().getTime() - beganAt
+            console.log("Calculating diff")
+            const newDate = this._newDate()
+            console.log(newDate)
+            diff = newDate.getTime() - beganAt
         } while (!entry && diff < this._maxWait)
         this._performanceEntryManager.unregisterCallback(this._url)
         if (entry) {
