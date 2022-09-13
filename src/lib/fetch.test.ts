@@ -1,66 +1,32 @@
-import { Dependencies, fetch } from "./fetch"
-import { PerformanceEntryManagerInterface } from "./resourceTiming"
+import { fetch } from "./fetch"
 
-function newSimpleReturner<T>(series: T[]) {
-    let callCount = 0
-    return () => {
-        return series[callCount++]
-    }
-}
-
-type SomeResult = {
-    timeout: boolean
-    blah: string
-}
-
-test("Resource Timing entry not found on first try", async () => {
-    const performanceEntryManager: PerformanceEntryManagerInterface = {
+const dependencies = {
+    clearTimeout: jest.fn(),
+    fetch: jest.fn(),
+    newDate: jest.fn(),
+    performanceEntryManager: {
         disconnectObserver: jest.fn(),
         onResourceTimingBufferFull: jest.fn(),
         registerCallback: jest.fn(),
         unregisterCallback: jest.fn(),
-    }
-    const mockSetTimeout = jest.fn(
-        (() => {
-            let callCount = 0
-            return (...args) => {
-                console.log(
-                    `Inside mock setTimeout implementation call ${callCount}`,
-                )
-                console.log(args)
-                if (callCount === 0) {
-                } else if (callCount === 1) {
-                    args[0]()
-                    console.log("Unit test calling production callback:")
-                    resourceTimingEntryFoundCallback({})
-                } else if (callCount === 2) {
-                    args[0]()
-                } else {
-                    throw new Error(`Unexpected call count`)
-                }
-                return ++callCount
-            }
-        })(),
-    )
-    const dependencies: Dependencies = {
-        clearTimeout: jest.fn(),
-        fetch: jest.fn((url: string, options?: RequestInit) =>
-            Promise.resolve({
-                blob: () => Promise.resolve({}),
-            } as Response),
-        ),
-        newDate: jest.fn(
-            newSimpleReturner([
-                new Date("2020-01-17T03:24:00Z"),
-                new Date("2020-01-17T03:24:00.01Z"),
-                new Date("2020-01-17T03:24:00.02Z"),
-            ]),
-        ),
-        performanceEntryManager,
-        setTimeout: mockSetTimeout,
-    }
-    // Don't await the result
-    const fetchPromise = fetch<SomeResult>(
+    },
+    setTimeout: jest.fn(),
+}
+
+function newFetchImplementationWithBlob(blob: Blob) {
+    return (url: string, options?: RequestInit) =>
+        Promise.resolve({
+            blob: () => Promise.resolve(blob),
+        } as Response)
+}
+
+beforeEach(() => {
+    // Reset all mocks in scope
+    jest.resetAllMocks()
+})
+
+async function invokeFetch() {
+    const fetchPromise = fetch(
         dependencies,
         "https://www.example.com/test",
         10000, // 10 second timeout
@@ -94,18 +60,39 @@ test("Resource Timing entry not found on first try", async () => {
             console.log(_error)
         },
     )
-    console.log("Fetch promise:")
-    console.log(fetchPromise)
-    console.log("Mock setTimeout calls:")
-    console.log(mockSetTimeout.mock.calls)
-
-    const mockRegisterCallback = dependencies.performanceEntryManager
-        .registerCallback as jest.Mock
-    console.log("Mock registerCallback calls:")
-    console.log(mockRegisterCallback.mock.calls)
-    const resourceTimingEntryFoundCallback =
-        mockRegisterCallback.mock.calls[0][1]
-
-    console.log("Awaiting fetch promise")
     await fetchPromise
+}
+
+test("Resource Timing found after multiple retries", async () => {
+    dependencies.fetch.mockImplementationOnce(
+        newFetchImplementationWithBlob(
+            new Blob(["{}"], { type: "application/json" }),
+        ),
+    )
+    dependencies.newDate.mockReturnValueOnce(new Date("2020-01-17T03:24:00Z"))
+    dependencies.newDate.mockReturnValueOnce(new Date("2020-01-17T03:24:01Z"))
+    dependencies.newDate.mockReturnValueOnce(new Date("2020-01-17T03:24:02Z"))
+    dependencies.setTimeout.mockImplementationOnce((_setTimeoutCallback) => {})
+    dependencies.setTimeout.mockImplementationOnce((setTimeoutCallback) => {
+        setTimeoutCallback()
+        // Invoke the entry found callback after this setTimeout callback so
+        // that the next setTimeout callback will find the entry cached
+        const entryFoundCallback =
+            dependencies.performanceEntryManager.registerCallback.mock
+                .calls[0][1]
+        entryFoundCallback({
+            foo: "bar",
+        })
+    })
+    dependencies.setTimeout.mockImplementationOnce((setTimeoutCallback) => {
+        setTimeoutCallback()
+    })
+
+    // Code under test
+    await invokeFetch()
+
+    // Verify
+    expect(
+        dependencies.performanceEntryManager.registerCallback.mock.calls.length,
+    ).toBe(1)
 })
