@@ -75,20 +75,15 @@ export class PerformanceEntryManager
                     // considered pathological input indicating a problem
                     // with the way measurements are being taken. Therefore,
                     // we tend to overlook that possibility.
-                    try {
-                        const entries = entryList.getEntriesByName(
-                            this._callbackBundle?.url,
-                            "resource",
-                        )
-                        console.log(entries)
-                        if (entries.length) {
-                            this._observer.disconnect()
-                            this._callbackBundle.callback(entries[0])
-                            delete this._callbackBundle
-                        }
-                    } catch (e) {
-                        console.error(e)
-                        throw e
+                    const entries = entryList.getEntriesByName(
+                        this._callbackBundle?.url,
+                        "resource",
+                    )
+                    console.log(entries)
+                    if (entries.length) {
+                        this._observer.disconnect()
+                        this._callbackBundle.callback(entries[0])
+                        delete this._callbackBundle
                     }
                 }
             },

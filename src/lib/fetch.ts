@@ -81,7 +81,6 @@ export async function fetch<T extends FetchTestResult>(
         afterTest(result)
     } catch (e) {
         // Swallow errors but provide caller with an opportunity to respond
-        console.error(e)
         onError(e)
     }
 }
@@ -119,7 +118,6 @@ async function fetchObject<T extends FetchTestResult>(
         return response
     } catch (e) {
         // Let caller handle the error later
-        console.log(e)
         result.error = e
     }
 }

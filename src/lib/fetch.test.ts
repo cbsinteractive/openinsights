@@ -1,5 +1,8 @@
 import { fetch } from "./fetch"
-import { PerformanceEntryManager } from "./resourceTiming"
+import {
+    PerformanceEntryManager,
+    RegisteredCallbackNotConsumedError,
+} from "./resourceTiming"
 
 type FakePerformanceObserver = {
     callback: PerformanceObserverCallback
@@ -58,9 +61,10 @@ function invokeFetch() {
         (_result: any) => {},
         // afterTest
         (_result: any) => {},
-        // onError
-        (_error: unknown) => {
-            console.error(_error)
+        // onError,
+        (e) => {
+            // Allow test to catch and examine the error
+            throw e
         },
     )
 }
@@ -79,7 +83,8 @@ type TestConfig = {
     newDateResults: Date[]
     setTimeoutResults: SetTimeoutSignature[]
     fetchInvocations: (() => Promise<void>)[]
-    performanceObserverEntryLists: PerformanceObserverEntryList[]
+    performanceEntryLists: PerformanceEntryList[]
+    expectedFetchError?: Error
 }
 
 type PerformanceTimingProperties = {
@@ -215,35 +220,29 @@ const testCases: TestConfig[] = [
             },
         ],
         fetchInvocations: [() => invokeFetch()],
-        performanceObserverEntryLists: [
-            {
-                getEntries: jest.fn(),
-                getEntriesByName: jest
-                    .fn()
-                    .mockReturnValueOnce([
-                        new TestPerformanceResourceTiming("foo", {}),
-                    ]),
-                getEntriesByType: jest.fn(),
+        performanceEntryLists: [[new TestPerformanceResourceTiming("foo", {})]],
+    },
+    {
+        description: "Simultaneous measurements are prevented",
+        fetchImplementation: newFetchImplementationWithBlob(
+            new Blob(["{}"], { type: "application/json" }),
+        ),
+        newDateResults: [
+            new Date("2020-01-17T03:24:00Z"),
+            new Date("2020-01-17T03:24:00.5Z"),
+        ],
+        setTimeoutResults: [
+            () => {},
+            (setTimeoutCallback) => {
+                setTimeoutCallback()
             },
         ],
+        fetchInvocations: [() => invokeFetch(), () => invokeFetch()],
+        performanceEntryLists: [],
+        expectedFetchError: new RegisteredCallbackNotConsumedError(
+            "https://www.example.com/test",
+        ),
     },
-    // {
-    //     description: "Simultaneous measurements are prevented",
-    //     fetchImplementation: newFetchImplementationWithBlob(
-    //         new Blob(["{}"], { type: "application/json" }),
-    //     ),
-    //     newDateResults: [
-    //         new Date("2020-01-17T03:24:00Z"),
-    //         new Date("2020-01-17T03:24:00.5Z"),
-    //     ],
-    //     setTimeoutResults: [
-    //         () => {},
-    //         (setTimeoutCallback) => {
-    //             setTimeoutCallback()
-    //         },
-    //     ],
-    //     fetchInvocations: [() => invokeFetch(), () => invokeFetch()],
-    // },
 ]
 
 testCases.forEach((t) =>
@@ -259,7 +258,7 @@ testCases.forEach((t) =>
             )
 
             // Code under test
-            let fetchResult
+            let fetchResult: Promise<void | void[]>
             if (t.fetchInvocations.length > 1) {
                 fetchResult = Promise.all(
                     t.fetchInvocations.map((invocation) => invocation()),
@@ -274,12 +273,10 @@ testCases.forEach((t) =>
             // that an entry matching the test object's URL exists. It's callback
             // may be invoked many times before this happens, however.
 
-            const mockGetEntriesByName = jest
-                .fn()
-                .mockReturnValueOnce([
-                    new TestPerformanceResourceTiming("foo", {}),
-                ])
-            try {
+            t.performanceEntryLists.forEach((entries) => {
+                const mockGetEntriesByName = jest
+                    .fn()
+                    .mockReturnValueOnce(entries)
                 fakePerformanceObserver.callback(
                     {
                         getEntries: function (): PerformanceEntryList {
@@ -294,13 +291,18 @@ testCases.forEach((t) =>
                     },
                     fakePerformanceObserver,
                 )
-            } catch (e) {
-                console.error(e)
-            }
-            console.log("Callback complete")
-            console.log(mockGetEntriesByName.mock.calls)
+                console.log("Callback complete")
+                console.log(mockGetEntriesByName.mock.calls)
+            })
 
-            await fetchResult
+            console.log("Test awaiting fetch result")
+            await fetchResult.catch((e) => {
+                if (t.expectedFetchError) {
+                    expect(e).toEqual(t.expectedFetchError)
+                } else {
+                    fail(e)
+                }
+            })
             console.log("Production code called")
         },
         // Fail fast (temporary)
