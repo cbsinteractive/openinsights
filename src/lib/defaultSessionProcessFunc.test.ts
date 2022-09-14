@@ -1,12 +1,21 @@
 import { defaultSessionProcessFunc } from "./defaultSessionProcessFunc"
 
-test("foo", async () => {
+test("successes and failures", async () => {
     const result = await defaultSessionProcessFunc([
         {
-            execute: () => Promise.resolve("some executable result"),
+            execute: () => Promise.resolve("result 1"),
+        },
+        {
+            execute: () => Promise.reject("error 1"),
+        },
+        {
+            execute: () => Promise.resolve("result 2"),
+        },
+        {
+            execute: () => Promise.reject("error 2"),
         },
     ])
     expect(result).toStrictEqual({
-        testResults: ["some executable result"],
+        testResults: ["result 1", "result 2"],
     })
 })
