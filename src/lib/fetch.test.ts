@@ -246,7 +246,6 @@ type TestConfig = {
     ) => Promise<Response>
     newDateResults: Date[]
     setTimeoutResults: SetTimeoutSignature[]
-    //fetchInvocations: (() => Promise<void>)[]
     fetchInvocations: { url: string; requestHeaders?: Record<string, string> }[]
     performanceEntryLists: PerformanceEntryList[]
     expectedFetchError: Error | null
@@ -257,6 +256,9 @@ type TestConfig = {
     ) => Promise<void>
     sendBeacon?: (result: any) => void
     onError?: (e: unknown) => void
+    validations?: {
+        fetch?: (mock: jest.MockContext<any, any>) => void
+    }
 }
 
 const testCases: TestConfig[] = [
@@ -383,6 +385,14 @@ const testCases: TestConfig[] = [
         ],
         performanceEntryLists: [[new TestPerformanceResourceTiming("foo", {})]],
         expectedFetchError: null,
+        validations: {
+            fetch: (mock) => {
+                expect(mock.calls[0][0]).toBe(
+                    "https://send-custom-request-headers",
+                )
+                expect(mock.calls[0][1].headers).toEqual({ foo: "bar" })
+            },
+        },
     },
 ]
 
@@ -466,6 +476,12 @@ testCases.forEach((t) =>
                     throw e
                 }
             })
+
+            if (t.validations) {
+                if (t.validations.fetch) {
+                    t.validations.fetch(dependencies.fetch.mock)
+                }
+            }
         },
         // Fail fast (temporary)
         // 500,
