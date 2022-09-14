@@ -1,5 +1,6 @@
 import { fetch } from "./fetch"
 import {
+    PerformanceEntryAwaitTimeout,
     PerformanceEntryManager,
     RegisteredCallbackNotConsumedError,
 } from "./resourceTiming"
@@ -351,6 +352,44 @@ const testCases: TestConfig[] = [
             expect(result.error).toBe(
                 "Some browser-specific error talking about how this download failed",
             )
+        },
+    },
+    {
+        description: "Resource Timing entry fails to appear",
+        newAbortControllerResult: new TestAbortController(),
+        fetchImplementation: newFetchImplementationWithBlob(
+            new Blob(["{}"], { type: "application/json" }),
+        ),
+        newDateResults: (() => {
+            const result = [new Date("2020-01-17T03:24:00Z")]
+            for (let i = 0; i < 20; i++) {
+                // Add 100 milliseconds to each successive Date
+                result.push(new Date(result[i].getTime() + 100))
+            }
+            return result
+        })(),
+        setTimeoutResults: (() => {
+            const result: SetTimeoutSignature[] = [() => {}]
+            for (let i = 0; i < 20; i++) {
+                result.push((setTimeoutCallback) => {
+                    setTimeoutCallback()
+                })
+            }
+            return result
+        })(),
+        fetchInvocations: [{ url: "https://entry-fails-to-appear" }],
+        performanceEntryLists: Array(20).fill([]),
+        onError: jest.fn(),
+        validations: {
+            onError: (m) => {
+                const typed = m.mock.calls[0][0] as PerformanceEntryAwaitTimeout
+                expect(typed.message).toBe(
+                    "Failed to find an entry for https://entry-fails-to-appear after 2000 milliseconds (max wait 2000)",
+                )
+                expect(typed.url).toBe("https://entry-fails-to-appear")
+                expect(typed.duration).toBe(2000)
+                expect(typed.maxWait).toBe(2000)
+            },
         },
     },
     {
