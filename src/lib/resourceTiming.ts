@@ -135,10 +135,8 @@ export class PerformanceEntryManager {
      * @param url
      */
     unregisterCallback(url: string) {
-        console.log(`Unregistering callback for ${url}`)
         if (this._callbackBundle && this._callbackBundle.url === url) {
             delete this._callbackBundle
-            console.log(`Unregistered callback for ${url}`)
         }
     }
 }
@@ -167,13 +165,12 @@ export class EntryAwaiter {
 
     async awaitEntry() {
         console.log(
-            `Inside awaitEntry, entry is ${JSON.stringify(this._entry)}`,
+            `Prod: inside awaitEntry, entry is ${JSON.stringify(this._entry)}`,
         )
         if (this._entry) {
             return this._entry
         }
         const beganAt = this._newDate().getTime()
-        console.log(`Began at: ${beganAt}`)
         let diff: number
         let entry: PerformanceEntry | undefined
         const MAX_WAIT = 2000
@@ -185,7 +182,7 @@ export class EntryAwaiter {
                 }),
                 new Promise((resolve) => {
                     console.log(
-                        "Setting timeout waiting for performance entry callback to be invoked",
+                        "Prod: setting timeout waiting for performance entry callback to be invoked",
                     )
                     this._setTimeout(resolve as () => void, 100)
                 }),

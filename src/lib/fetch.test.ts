@@ -248,7 +248,6 @@ type TestConfig = {
     setTimeoutResults: SetTimeoutSignature[]
     fetchInvocations: { url: string; requestHeaders?: Record<string, string> }[]
     performanceEntryLists: PerformanceEntryList[]
-    expectedFetchError: Error | null
     beforeBeacon?: (
         result: any,
         response: Response,
@@ -259,6 +258,7 @@ type TestConfig = {
     validations?: {
         clearTimeout?: (m: jest.Mock) => void
         fetch?: (m: jest.Mock) => void
+        onError?: (m: jest.Mock) => void
     }
 }
 
@@ -287,7 +287,6 @@ const testCases: TestConfig[] = [
             { url: "https://entry-found-after-multiple-retries" },
         ],
         performanceEntryLists: [[new TestPerformanceResourceTiming("foo", {})]],
-        expectedFetchError: null,
         validations: {
             clearTimeout: (m) => {
                 console.log(m)
@@ -297,13 +296,13 @@ const testCases: TestConfig[] = [
     },
     {
         description: "Simultaneous measurements are prevented",
-        newAbortControllerResult: null,
+        newAbortControllerResult: new TestAbortController(),
         fetchImplementation: newFetchImplementationWithBlob(
             new Blob(["{}"], { type: "application/json" }),
         ),
         newDateResults: [
             new Date("2020-01-17T03:24:00Z"),
-            new Date("2020-01-17T03:24:00.5Z"),
+            new Date("2020-01-17T03:24:00.2Z"),
         ],
         setTimeoutResults: [
             () => {},
@@ -315,11 +314,23 @@ const testCases: TestConfig[] = [
             { url: "https://simultaneous-measurements-prevented/1" },
             { url: "https://simultaneous-measurements-prevented/2" },
         ],
-        performanceEntryLists: [],
-        expectedFetchError: new RegisteredCallbackNotConsumedError(
-            "https://simultaneous-measurements-prevented/2",
-            "https://simultaneous-measurements-prevented/1",
-        ),
+        performanceEntryLists: [[new TestPerformanceResourceTiming("foo", {})]],
+        onError: jest.fn(),
+        validations: {
+            onError: (m) => {
+                const typed = m.mock
+                    .calls[0][0] as RegisteredCallbackNotConsumedError
+                expect(typed.message).toBe(
+                    "Callback not consumed (being added: https://simultaneous-measurements-prevented/2, still registered: https://simultaneous-measurements-prevented/1)",
+                )
+                expect(typed.urlBeingAdded).toBe(
+                    "https://simultaneous-measurements-prevented/2",
+                )
+                expect(typed.urlStillRegistered).toBe(
+                    "https://simultaneous-measurements-prevented/1",
+                )
+            },
+        },
     },
     {
         description: "Timeout reached during fetch",
@@ -336,7 +347,6 @@ const testCases: TestConfig[] = [
         ],
         fetchInvocations: [{ url: "https://www.example.com/3/test" }],
         performanceEntryLists: [],
-        expectedFetchError: null,
         sendBeacon: (result) => {
             expect(result.error).toBe(
                 "Some browser-specific error talking about how this download failed",
@@ -361,7 +371,6 @@ const testCases: TestConfig[] = [
         ],
         fetchInvocations: [{ url: "https://www.example.com/4/test" }],
         performanceEntryLists: [],
-        expectedFetchError: null,
         sendBeacon: (result) => {
             expect(result.error).toBe(
                 "Some browser-specific error talking about how this download failed (response.blob)",
@@ -391,7 +400,6 @@ const testCases: TestConfig[] = [
             },
         ],
         performanceEntryLists: [[new TestPerformanceResourceTiming("foo", {})]],
-        expectedFetchError: null,
         validations: {
             fetch: (m) => {
                 expect(m.mock.calls[0][0]).toBe(
@@ -476,13 +484,7 @@ testCases.forEach((t) =>
 
             console.log("Test: awaiting fetch result")
             console.log(fetchResult)
-            await fetchResult.catch((e) => {
-                if (t.expectedFetchError) {
-                    expect(e).toEqual(t.expectedFetchError)
-                } else {
-                    throw e
-                }
-            })
+            await fetchResult
 
             // Validate calls on mock functions
             if (t.validations) {
@@ -491,6 +493,9 @@ testCases.forEach((t) =>
                 }
                 if (t.validations.fetch) {
                     t.validations.fetch(dependencies.fetch)
+                }
+                if (t.validations.onError) {
+                    t.validations.onError(t.onError as jest.Mock)
                 }
             }
         },
