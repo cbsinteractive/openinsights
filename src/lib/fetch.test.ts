@@ -257,7 +257,8 @@ type TestConfig = {
     sendBeacon?: (result: any) => void
     onError?: (e: unknown) => void
     validations?: {
-        fetch?: (mock: jest.MockContext<any, any>) => void
+        clearTimeout?: (m: jest.Mock) => void
+        fetch?: (m: jest.Mock) => void
     }
 }
 
@@ -287,6 +288,12 @@ const testCases: TestConfig[] = [
         ],
         performanceEntryLists: [[new TestPerformanceResourceTiming("foo", {})]],
         expectedFetchError: null,
+        validations: {
+            clearTimeout: (m) => {
+                console.log(m)
+                expect(m).toHaveBeenCalledTimes(1)
+            },
+        },
     },
     {
         description: "Simultaneous measurements are prevented",
@@ -386,11 +393,11 @@ const testCases: TestConfig[] = [
         performanceEntryLists: [[new TestPerformanceResourceTiming("foo", {})]],
         expectedFetchError: null,
         validations: {
-            fetch: (mock) => {
-                expect(mock.calls[0][0]).toBe(
+            fetch: (m) => {
+                expect(m.mock.calls[0][0]).toBe(
                     "https://send-custom-request-headers",
                 )
-                expect(mock.calls[0][1].headers).toEqual({ foo: "bar" })
+                expect(m.mock.calls[0][1].headers).toEqual({ foo: "bar" })
             },
         },
     },
@@ -477,9 +484,13 @@ testCases.forEach((t) =>
                 }
             })
 
+            // Validate calls on mock functions
             if (t.validations) {
+                if (t.validations.clearTimeout) {
+                    t.validations.clearTimeout(dependencies.clearTimeout)
+                }
                 if (t.validations.fetch) {
-                    t.validations.fetch(dependencies.fetch.mock)
+                    t.validations.fetch(dependencies.fetch)
                 }
             }
         },
