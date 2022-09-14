@@ -42,31 +42,27 @@ beforeEach(() => {
     jest.resetAllMocks()
 })
 
-function invokeFetch(url: string) {
+function invokeFetch(
+    t: TestConfig,
+    url: string,
+    requestHeaders: Record<string, string> | null,
+) {
     return fetch(
         dependencies,
         url,
         10000, // 10 second timeout
-        null,
+        requestHeaders,
         // beforeTest
         () => Promise.resolve({ timeout: false, foo: "bar" }),
-        // beforeBeacon
-        (
-            _result: any,
-            _response: Response,
-            _performanceEntry: PerformanceEntry,
-        ) => {
-            return Promise.resolve()
-        },
-        // sendBeacon
-        (_result: any) => {},
+        t.beforeBeacon || (() => Promise.resolve()),
+        t.sendBeacon || (() => {}),
         // afterTest
         (_result: any) => {},
-        // onError,
-        (e) => {
-            // Allow test to catch and examine the error
-            throw e
-        },
+        t.onError ||
+            (() => {
+                // Normal behavior is to swallow the error
+                // Test might override this if they need to examine it
+            }),
     )
 }
 
@@ -203,9 +199,9 @@ class TestAbortSignal implements AbortSignal {
         options?: boolean | AddEventListenerOptions | undefined,
     ): void
     addEventListener(
-        type: unknown,
-        listener: unknown,
-        options?: unknown,
+        _type: unknown,
+        _listener: unknown,
+        _options?: unknown,
     ): void {
         throw new Error("Method not implemented.")
     }
@@ -220,13 +216,13 @@ class TestAbortSignal implements AbortSignal {
         options?: boolean | EventListenerOptions | undefined,
     ): void
     removeEventListener(
-        type: unknown,
-        listener: unknown,
-        options?: unknown,
+        _type: unknown,
+        _listener: unknown,
+        _options?: unknown,
     ): void {
         throw new Error("Method not implemented.")
     }
-    dispatchEvent(event: Event): boolean {
+    dispatchEvent(_event: Event): boolean {
         throw new Error("Method not implemented.")
     }
 }
@@ -235,8 +231,9 @@ class TestAbortController implements AbortController {
     signal: AbortSignal = new TestAbortSignal()
     abort(reason?: any): void
     abort(): void
-    abort(reason?: unknown): void {
-        throw new Error("Method not implemented.")
+    abort(_reason?: unknown): void {
+        // Do nothing. Calling this function manifests at an error thrown by
+        // the fetch sequence (e.g. fetch() or response.blob())
     }
 }
 
@@ -249,9 +246,17 @@ type TestConfig = {
     ) => Promise<Response>
     newDateResults: Date[]
     setTimeoutResults: SetTimeoutSignature[]
-    fetchInvocations: (() => Promise<void>)[]
+    //fetchInvocations: (() => Promise<void>)[]
+    fetchInvocations: { url: string; requestHeaders?: Record<string, string> }[]
     performanceEntryLists: PerformanceEntryList[]
     expectedFetchError: Error | null
+    beforeBeacon?: (
+        result: any,
+        response: Response,
+        performanceEntry: PerformanceEntry,
+    ) => Promise<void>
+    sendBeacon?: (result: any) => void
+    onError?: (e: unknown) => void
 }
 
 const testCases: TestConfig[] = [
@@ -275,7 +280,9 @@ const testCases: TestConfig[] = [
                 setTimeoutCallback()
             },
         ],
-        fetchInvocations: [() => invokeFetch("https://www.example.com/test")],
+        fetchInvocations: [
+            { url: "https://entry-found-after-multiple-retries" },
+        ],
         performanceEntryLists: [[new TestPerformanceResourceTiming("foo", {})]],
         expectedFetchError: null,
     },
@@ -296,40 +303,87 @@ const testCases: TestConfig[] = [
             },
         ],
         fetchInvocations: [
-            () => invokeFetch("https://www.example.com/test1"),
-            () => invokeFetch("https://www.example.com/test2"),
+            { url: "https://simultaneous-measurements-prevented/1" },
+            { url: "https://simultaneous-measurements-prevented/2" },
         ],
         performanceEntryLists: [],
         expectedFetchError: new RegisteredCallbackNotConsumedError(
-            "https://www.example.com/test2",
-            "https://www.example.com/test1",
+            "https://simultaneous-measurements-prevented/2",
+            "https://simultaneous-measurements-prevented/1",
         ),
     },
-    // {
-    //     description: "Timeout reached",
-    //     fetchImplementation: newFetchImplementationWithBlob(
-    //         new Blob(["{}"], { type: "application/json" }),
-    //     ),
-    //     newDateResults: [
-    //         new Date("2020-01-17T03:24:00Z"),
-    //         new Date("2020-01-17T03:24:00.5Z"),
-    //     ],
-    //     setTimeoutResults: [
-    //         () => {},
-    //         (setTimeoutCallback) => {
-    //             setTimeoutCallback()
-    //         },
-    //     ],
-    //     fetchInvocations: [
-    //         () => invokeFetch("https://www.example.com/test1"),
-    //         () => invokeFetch("https://www.example.com/test2"),
-    //     ],
-    //     performanceEntryLists: [],
-    //     expectedFetchError: new RegisteredCallbackNotConsumedError(
-    //         "https://www.example.com/test2",
-    //         "https://www.example.com/test1",
-    //     ),
-    // },
+    {
+        description: "Timeout reached during fetch",
+        newAbortControllerResult: new TestAbortController(),
+        fetchImplementation: () => {
+            throw "Some browser-specific error talking about how this download failed"
+        },
+        newDateResults: [new Date("2020-01-17T03:24:00Z")],
+        setTimeoutResults: [
+            (setTimeoutCallback) => {
+                console.warn("Timeout handler 1")
+                setTimeoutCallback()
+            },
+        ],
+        fetchInvocations: [{ url: "https://www.example.com/3/test" }],
+        performanceEntryLists: [],
+        expectedFetchError: null,
+        sendBeacon: (result) => {
+            expect(result.error).toBe(
+                "Some browser-specific error talking about how this download failed",
+            )
+        },
+    },
+    {
+        description: "Timeout reached during response.blob",
+        newAbortControllerResult: new TestAbortController(),
+        fetchImplementation: () =>
+            Promise.resolve({
+                blob: () => {
+                    throw "Some browser-specific error talking about how this download failed (response.blob)"
+                },
+            } as unknown as Response),
+        newDateResults: [new Date("2020-01-17T03:24:00Z")],
+        setTimeoutResults: [
+            (setTimeoutCallback) => {
+                console.warn("Timeout handler 1")
+                setTimeoutCallback()
+            },
+        ],
+        fetchInvocations: [{ url: "https://www.example.com/4/test" }],
+        performanceEntryLists: [],
+        expectedFetchError: null,
+        sendBeacon: (result) => {
+            expect(result.error).toBe(
+                "Some browser-specific error talking about how this download failed (response.blob)",
+            )
+        },
+    },
+    {
+        description: "Send custom request headers",
+        newAbortControllerResult: new TestAbortController(),
+        fetchImplementation: newFetchImplementationWithBlob(
+            new Blob(["{}"], { type: "application/json" }),
+        ),
+        newDateResults: [
+            new Date("2020-01-17T03:24:00Z"),
+            new Date("2020-01-17T03:24:01Z"),
+        ],
+        setTimeoutResults: [
+            () => {},
+            (setTimeoutCallback) => {
+                setTimeoutCallback()
+            },
+        ],
+        fetchInvocations: [
+            {
+                url: "https://send-custom-request-headers",
+                requestHeaders: { foo: "bar" },
+            },
+        ],
+        performanceEntryLists: [[new TestPerformanceResourceTiming("foo", {})]],
+        expectedFetchError: null,
+    },
 ]
 
 testCases.forEach((t) =>
@@ -353,11 +407,28 @@ testCases.forEach((t) =>
             let fetchResult: Promise<void | void[]>
             if (t.fetchInvocations.length > 1) {
                 fetchResult = Promise.all(
-                    t.fetchInvocations.map((invocation) => invocation()),
+                    t.fetchInvocations.map((invocationConfig) =>
+                        invokeFetch(
+                            t,
+                            invocationConfig.url,
+                            invocationConfig.requestHeaders != undefined
+                                ? invocationConfig.requestHeaders
+                                : null,
+                        ),
+                    ),
                 )
             } else {
-                fetchResult = t.fetchInvocations[0]()
+                const invocationConfig = t.fetchInvocations[0]
+                fetchResult = invokeFetch(
+                    t,
+                    invocationConfig.url,
+                    invocationConfig.requestHeaders != undefined
+                        ? invocationConfig.requestHeaders
+                        : null,
+                )
             }
+            console.log("Test: Invoked fetch")
+            console.log(fetchResult)
 
             // At this point openinsights.fetch has been called, possibly
             // multiple times. At some point in the future, the PerformanceObserver
@@ -383,11 +454,11 @@ testCases.forEach((t) =>
                     },
                     fakePerformanceObserver,
                 )
-                console.log("Callback complete")
                 console.log(mockGetEntriesByName.mock.calls)
             })
 
-            console.log("Test awaiting fetch result")
+            console.log("Test: awaiting fetch result")
+            console.log(fetchResult)
             await fetchResult.catch((e) => {
                 if (t.expectedFetchError) {
                     expect(e).toEqual(t.expectedFetchError)
@@ -395,9 +466,8 @@ testCases.forEach((t) =>
                     throw e
                 }
             })
-            console.log("Production code called")
         },
         // Fail fast (temporary)
-        500,
+        // 500,
     ),
 )

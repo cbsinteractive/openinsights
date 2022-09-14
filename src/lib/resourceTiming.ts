@@ -61,18 +61,7 @@ type Dependencies = {
     ) => PerformanceObserver
 }
 
-export interface PerformanceEntryManagerInterface {
-    onResourceTimingBufferFull(performance: Performance): void
-    registerCallback(
-        url: string,
-        callback: (entry: PerformanceEntry) => void,
-    ): void
-    unregisterCallback(url: string): void
-}
-
-export class PerformanceEntryManager
-    implements PerformanceEntryManagerInterface
-{
+export class PerformanceEntryManager {
     private _observer
     private _callbackBundle?: RegisteredCallbackBundle
     constructor(private _dependencies: Dependencies) {
@@ -85,12 +74,15 @@ export class PerformanceEntryManager
                     // with the way measurements are being taken. Therefore,
                     // we tend to overlook that possibility.
                     const entries = entryList.getEntriesByName(
-                        this._callbackBundle?.url,
+                        this._callbackBundle.url,
                         "resource",
                     )
                     console.log(entries)
                     if (entries.length) {
                         this._observer.disconnect()
+                        // We could validate the entry `name` property, but
+                        // we're counting on getEntriesByName to do the right
+                        // thing
                         this._callbackBundle.callback(entries[0])
                         delete this._callbackBundle
                     }
@@ -143,6 +135,7 @@ export class PerformanceEntryManager
      * @param url
      */
     unregisterCallback(url: string) {
+        console.log(`Unregistering callback for ${url}`)
         if (this._callbackBundle && this._callbackBundle.url === url) {
             delete this._callbackBundle
             console.log(`Unregistered callback for ${url}`)
@@ -161,12 +154,12 @@ export class EntryAwaiter {
     private _entry?: PerformanceEntry
     constructor(
         private _url: string,
-        private _performanceEntryManager: PerformanceEntryManagerInterface,
         private _newDate: () => Date,
         private _setTimeout: (fn: () => void, timeout: number) => number,
+        performanceEntryManager: PerformanceEntryManager,
     ) {
         console.log("Registering performance entry manager callback")
-        _performanceEntryManager.registerCallback(_url, (entry) => {
+        performanceEntryManager.registerCallback(_url, (entry) => {
             console.log(`Found entry! ${JSON.stringify(entry)}`)
             this._entry = entry
         })
@@ -206,7 +199,6 @@ export class EntryAwaiter {
             diff = newDate.getTime() - beganAt
             console.log(`Calculated diff ${diff} milliseconds`)
         } while (!entry && diff < MAX_WAIT)
-        this._performanceEntryManager.unregisterCallback(this._url)
         if (entry) {
             return entry
         }

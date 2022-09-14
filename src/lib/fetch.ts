@@ -1,14 +1,11 @@
-import {
-    EntryAwaiter,
-    PerformanceEntryManagerInterface,
-} from "./resourceTiming"
+import { EntryAwaiter, PerformanceEntryManager } from "./resourceTiming"
 
 export interface Dependencies {
     clearTimeout: (timeoutID: number) => void
     fetch: (url: string, options?: RequestInit) => Promise<Response>
     newAbortController: () => AbortController
     newDate: () => Date
-    performanceEntryManager: PerformanceEntryManagerInterface
+    performanceEntryManager: PerformanceEntryManager
     setTimeout: (fn: () => void, timeout: number) => number
 }
 
@@ -54,12 +51,13 @@ export async function fetch<T extends FetchTestResult>(
     afterTest: (result: T) => void,
     onError: (error: unknown) => void,
 ) {
+    console.log("Prod: entered fetch")
     try {
         const entryAwaiter = new EntryAwaiter(
             url,
-            dependencies.performanceEntryManager,
             dependencies.newDate,
             dependencies.setTimeout,
+            dependencies.performanceEntryManager,
         )
         const result = await beforeTest()
         const response = await fetchObject(
@@ -75,15 +73,26 @@ export async function fetch<T extends FetchTestResult>(
                 result.entry = entry
                 // Give the caller an opportunity to adorn the result based
                 // on the response and performance entry
+                console.log("Prod: awaiting beforeBeacon")
                 await beforeBeacon(result, response, entry)
+                console.log("Prod: returned from beforeBeacon")
             }
         }
+        console.log("Prod: calling sendBeacon")
         sendBeacon(result)
+        console.log("Prod: calling afterTest")
         afterTest(result)
     } catch (e) {
         // Swallow errors but provide caller with an opportunity to respond
+        console.log(`Prod: calling onError (url: ${url})`)
         onError(e)
+        console.log(`Prod: called onError (url: ${url})`)
     }
+    console.log("Prod: unregistering callback")
+    // Unregistering the performance entry callback **once**, as late as in
+    // the measurement sequences as possible
+    dependencies.performanceEntryManager.unregisterCallback(url)
+    console.log("Prod: leaving fetch")
 }
 
 async function fetchObject<T extends FetchTestResult>(
@@ -94,13 +103,11 @@ async function fetchObject<T extends FetchTestResult>(
     result: T,
 ) {
     const abortController = dependencies.newAbortController()
-    console.log("Calling setTimeout for abort controller")
     const timeoutID = dependencies.setTimeout(() => {
-        // De-register pending callback
-        dependencies.performanceEntryManager.unregisterCallback(url)
-        // Force download to abort
-        abortController.abort()
+        // Record that a timeout took place
         result.timeout = true
+        // Force download to stop
+        abortController.abort()
     }, fetchTimeout)
     const options: RequestInit = {
         method: "GET",
@@ -118,6 +125,7 @@ async function fetchObject<T extends FetchTestResult>(
         dependencies.clearTimeout(timeoutID)
         return response
     } catch (e) {
+        console.warn(e)
         // Let caller handle the error later
         result.error = e
     }
