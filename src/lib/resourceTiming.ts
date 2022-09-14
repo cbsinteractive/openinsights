@@ -171,9 +171,9 @@ export class EntryAwaiter {
             return this._entry
         }
         const beganAt = this._newDate().getTime()
-        let diff: number
         let entry: PerformanceEntry | undefined
         const MAX_WAIT = 2000
+        let diff = MAX_WAIT
         do {
             console.log("Awaiting Promise.all")
             const result = await Promise.all([
@@ -190,6 +190,7 @@ export class EntryAwaiter {
             console.log(result)
             if (result[0]) {
                 entry = result[0]
+                break
             }
             const newDate = this._newDate()
             console.log(newDate)
