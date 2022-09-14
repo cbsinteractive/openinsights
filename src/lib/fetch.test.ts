@@ -48,7 +48,7 @@ function invokeFetch(url: string) {
         10000, // 10 second timeout
         null,
         // beforeTest
-        () => Promise.resolve({ timeout: false, blah: "abc" }),
+        () => Promise.resolve({ timeout: false, foo: "bar" }),
         // beforeBeacon
         (
             _result: any,
@@ -304,7 +304,7 @@ testCases.forEach((t) =>
                 if (t.expectedFetchError) {
                     expect(e).toEqual(t.expectedFetchError)
                 } else {
-                    fail(e)
+                    throw e
                 }
             })
             console.log("Production code called")
