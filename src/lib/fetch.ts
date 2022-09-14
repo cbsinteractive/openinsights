@@ -6,6 +6,7 @@ import {
 export interface Dependencies {
     clearTimeout: (timeoutID: number) => void
     fetch: (url: string, options?: RequestInit) => Promise<Response>
+    newAbortController: () => AbortController
     newDate: () => Date
     performanceEntryManager: PerformanceEntryManagerInterface
     setTimeout: (fn: () => void, timeout: number) => number
@@ -92,7 +93,7 @@ async function fetchObject<T extends FetchTestResult>(
     requestHeaders: Record<string, string> | null,
     result: T,
 ) {
-    const abortController = new AbortController()
+    const abortController = dependencies.newAbortController()
     console.log("Calling setTimeout for abort controller")
     const timeoutID = dependencies.setTimeout(() => {
         // De-register pending callback

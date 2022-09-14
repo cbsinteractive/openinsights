@@ -13,6 +13,7 @@ let fakePerformanceObserver: FakePerformanceObserver & PerformanceObserver
 const dependencies = {
     clearTimeout: jest.fn(),
     fetch: jest.fn(),
+    newAbortController: jest.fn(),
     newDate: jest.fn(),
     performanceEntryManager: new PerformanceEntryManager({
         newDate: jest.fn(),
@@ -74,19 +75,6 @@ type SetTimeoutSignature = (
     timeout: number,
 ) => void
 
-type TestConfig = {
-    description: string
-    fetchImplementation: (
-        url: string,
-        options?: RequestInit,
-    ) => Promise<Response>
-    newDateResults: Date[]
-    setTimeoutResults: SetTimeoutSignature[]
-    fetchInvocations: (() => Promise<void>)[]
-    performanceEntryLists: PerformanceEntryList[]
-    expectedFetchError?: Error
-}
-
 type PerformanceTimingProperties = {
     transferSize?: number
     encodedBodySize?: number
@@ -106,9 +94,7 @@ type PerformanceTimingProperties = {
     responseEnd?: number
 }
 
-export class TestPerformanceResourceTiming
-    implements PerformanceResourceTiming
-{
+class TestPerformanceResourceTiming implements PerformanceResourceTiming {
     constructor(name: string, props: PerformanceTimingProperties) {
         const getNumericProperty = (
             setting: number | undefined,
@@ -199,9 +185,79 @@ export class TestPerformanceResourceTiming
     }
 }
 
+class TestAbortSignal implements AbortSignal {
+    aborted = false
+    onabort = null
+    reason: any
+    throwIfAborted(): void {
+        throw new Error("Method not implemented.")
+    }
+    addEventListener<K extends "abort">(
+        type: K,
+        listener: (this: AbortSignal, ev: AbortSignalEventMap[K]) => any,
+        options?: boolean | AddEventListenerOptions | undefined,
+    ): void
+    addEventListener(
+        type: string,
+        listener: EventListenerOrEventListenerObject,
+        options?: boolean | AddEventListenerOptions | undefined,
+    ): void
+    addEventListener(
+        type: unknown,
+        listener: unknown,
+        options?: unknown,
+    ): void {
+        throw new Error("Method not implemented.")
+    }
+    removeEventListener<K extends "abort">(
+        type: K,
+        listener: (this: AbortSignal, ev: AbortSignalEventMap[K]) => any,
+        options?: boolean | EventListenerOptions | undefined,
+    ): void
+    removeEventListener(
+        type: string,
+        listener: EventListenerOrEventListenerObject,
+        options?: boolean | EventListenerOptions | undefined,
+    ): void
+    removeEventListener(
+        type: unknown,
+        listener: unknown,
+        options?: unknown,
+    ): void {
+        throw new Error("Method not implemented.")
+    }
+    dispatchEvent(event: Event): boolean {
+        throw new Error("Method not implemented.")
+    }
+}
+
+class TestAbortController implements AbortController {
+    signal: AbortSignal = new TestAbortSignal()
+    abort(reason?: any): void
+    abort(): void
+    abort(reason?: unknown): void {
+        throw new Error("Method not implemented.")
+    }
+}
+
+type TestConfig = {
+    description: string
+    newAbortControllerResult: AbortController | null
+    fetchImplementation: (
+        url: string,
+        options?: RequestInit,
+    ) => Promise<Response>
+    newDateResults: Date[]
+    setTimeoutResults: SetTimeoutSignature[]
+    fetchInvocations: (() => Promise<void>)[]
+    performanceEntryLists: PerformanceEntryList[]
+    expectedFetchError: Error | null
+}
+
 const testCases: TestConfig[] = [
     {
         description: "Resource Timing entry found after multiple retries",
+        newAbortControllerResult: new TestAbortController(),
         fetchImplementation: newFetchImplementationWithBlob(
             new Blob(["{}"], { type: "application/json" }),
         ),
@@ -221,9 +277,11 @@ const testCases: TestConfig[] = [
         ],
         fetchInvocations: [() => invokeFetch("https://www.example.com/test")],
         performanceEntryLists: [[new TestPerformanceResourceTiming("foo", {})]],
+        expectedFetchError: null,
     },
     {
         description: "Simultaneous measurements are prevented",
+        newAbortControllerResult: null,
         fetchImplementation: newFetchImplementationWithBlob(
             new Blob(["{}"], { type: "application/json" }),
         ),
@@ -247,12 +305,42 @@ const testCases: TestConfig[] = [
             "https://www.example.com/test1",
         ),
     },
+    // {
+    //     description: "Timeout reached",
+    //     fetchImplementation: newFetchImplementationWithBlob(
+    //         new Blob(["{}"], { type: "application/json" }),
+    //     ),
+    //     newDateResults: [
+    //         new Date("2020-01-17T03:24:00Z"),
+    //         new Date("2020-01-17T03:24:00.5Z"),
+    //     ],
+    //     setTimeoutResults: [
+    //         () => {},
+    //         (setTimeoutCallback) => {
+    //             setTimeoutCallback()
+    //         },
+    //     ],
+    //     fetchInvocations: [
+    //         () => invokeFetch("https://www.example.com/test1"),
+    //         () => invokeFetch("https://www.example.com/test2"),
+    //     ],
+    //     performanceEntryLists: [],
+    //     expectedFetchError: new RegisteredCallbackNotConsumedError(
+    //         "https://www.example.com/test2",
+    //         "https://www.example.com/test1",
+    //     ),
+    // },
 ]
 
 testCases.forEach((t) =>
     test(
         t.description,
         async () => {
+            if (t.newAbortControllerResult) {
+                dependencies.newAbortController.mockReturnValueOnce(
+                    t.newAbortControllerResult,
+                )
+            }
             dependencies.fetch.mockImplementationOnce(t.fetchImplementation)
             t.newDateResults.forEach((d) =>
                 dependencies.newDate.mockReturnValueOnce(d),
