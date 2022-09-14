@@ -1,11 +1,20 @@
 export class RegisteredCallbackNotConsumedError extends Error {
-    constructor(private _url: string) {
-        super(`The callback for ${_url} was not consumed`)
+    constructor(
+        private _urlBeingAdded: string,
+        private _urlStillRegistered: string,
+    ) {
+        super(
+            `Callback not consumed (being added: ${_urlBeingAdded}, still registered: ${_urlStillRegistered})`,
+        )
         Object.setPrototypeOf(this, new.target.prototype)
     }
 
-    get url() {
-        return this._url
+    get urlStillRegistered() {
+        return this._urlStillRegistered
+    }
+
+    get urlBeingAdded() {
+        return this._urlBeingAdded
     }
 }
 
@@ -118,6 +127,7 @@ export class PerformanceEntryManager
         console.log(`Registering callback for ${url}`)
         if (this._callbackBundle) {
             throw new RegisteredCallbackNotConsumedError(
+                url,
                 this._callbackBundle.url,
             )
         }

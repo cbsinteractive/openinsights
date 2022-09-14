@@ -41,10 +41,10 @@ beforeEach(() => {
     jest.resetAllMocks()
 })
 
-function invokeFetch() {
+function invokeFetch(url: string) {
     return fetch(
         dependencies,
-        "https://www.example.com/test",
+        url,
         10000, // 10 second timeout
         null,
         // beforeTest
@@ -219,7 +219,7 @@ const testCases: TestConfig[] = [
                 setTimeoutCallback()
             },
         ],
-        fetchInvocations: [() => invokeFetch()],
+        fetchInvocations: [() => invokeFetch("https://www.example.com/test")],
         performanceEntryLists: [[new TestPerformanceResourceTiming("foo", {})]],
     },
     {
@@ -237,10 +237,14 @@ const testCases: TestConfig[] = [
                 setTimeoutCallback()
             },
         ],
-        fetchInvocations: [() => invokeFetch(), () => invokeFetch()],
+        fetchInvocations: [
+            () => invokeFetch("https://www.example.com/test1"),
+            () => invokeFetch("https://www.example.com/test2"),
+        ],
         performanceEntryLists: [],
         expectedFetchError: new RegisteredCallbackNotConsumedError(
-            "https://www.example.com/test",
+            "https://www.example.com/test2",
+            "https://www.example.com/test1",
         ),
     },
 ]
