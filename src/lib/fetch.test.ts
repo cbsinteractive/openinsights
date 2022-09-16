@@ -1,5 +1,8 @@
 import {
+    asyncFunc,
+    newPerformanceObserverEntryList,
     TestAbortController,
+    TestPerformanceObserver,
     TestPerformanceResourceTiming,
 } from "../testExtras"
 import { fetch } from "./fetch"
@@ -9,374 +12,382 @@ import {
     RegisteredCallbackNotConsumedError,
 } from "./resourceTiming"
 
-type FakePerformanceObserver = {
-    callback: PerformanceObserverCallback
-}
-
-let fakePerformanceObserver: FakePerformanceObserver & PerformanceObserver
-
-const dependencies = {
-    clearTimeout: jest.fn(),
-    fetch: jest.fn(),
-    newAbortController: jest.fn(),
-    newDate: jest.fn(),
-    performanceEntryManager: new PerformanceEntryManager({
+test("Find entry immediately", async () => {
+    const mockPerformanceObserver = new TestPerformanceObserver()
+    const performanceEntryManagerDependencies = {
         newDate: jest.fn(),
-        newPerformanceObserver: (performanceObserverCallback) => {
-            fakePerformanceObserver = {
-                callback: performanceObserverCallback,
-                disconnect: jest.fn(),
-                observe: jest.fn(),
-                takeRecords: jest.fn(),
-            }
-            return fakePerformanceObserver
+        newPerformanceObserver: jest
+            .fn<PerformanceObserver, [PerformanceObserverCallback]>()
+            .mockReturnValue(mockPerformanceObserver),
+    }
+    const testAbortController = new TestAbortController()
+    const testResponse = {
+        blob: jest
+            .fn()
+            .mockResolvedValueOnce(
+                new Blob(["{}"], { type: "application/json" }),
+            ),
+    }
+    const dependencies = {
+        clearTimeout: jest.fn(),
+        fetch: jest.fn().mockResolvedValueOnce(testResponse),
+        newAbortController: jest.fn().mockReturnValueOnce(testAbortController),
+        newDate: jest.fn(),
+        performanceEntryManager: new PerformanceEntryManager(
+            performanceEntryManagerDependencies,
+        ),
+        setTimeout: jest.fn(),
+    }
+
+    // Code under test
+    const fetchResult = fetch(
+        dependencies,
+        "http://foo/test",
+        10000,
+        { foo: "bar" },
+        () => Promise.resolve({ timeout: false }),
+        // beforeBeacon
+        () => Promise.resolve(),
+        // sendBeacon
+        () => {},
+        // afterTest
+        () => {},
+        // onError
+        (e) => {
+            console.warn(e)
         },
-    }),
-    setTimeout: jest.fn(),
-}
+    )
+    const prodPerformanceObserverCallback =
+        performanceEntryManagerDependencies.newPerformanceObserver.mock
+            .calls[0][0]
 
-function newFetchImplementationWithBlob(blob: Blob) {
-    return (_url: string, _options?: RequestInit) =>
-        Promise.resolve({
-            blob: () => Promise.resolve(blob),
-        } as Response)
-}
+    // Simulate production code not finding the entry
+    prodPerformanceObserverCallback(
+        newPerformanceObserverEntryList([new TestPerformanceResourceTiming()]),
+        mockPerformanceObserver,
+    )
 
-beforeEach(() => {
-    // Reset all mocks in scope
-    jest.resetAllMocks()
+    await fetchResult
+
+    // Verify
+    expect(
+        performanceEntryManagerDependencies.newPerformanceObserver,
+    ).toHaveBeenCalledTimes(1)
+    expect(dependencies.newDate).not.toHaveBeenCalled()
 })
 
-function invokeFetch(
-    t: TestConfig,
-    url: string,
-    requestHeaders: Record<string, string> | null,
-) {
-    return fetch(
-        dependencies,
-        url,
-        10000, // 10 second timeout
-        requestHeaders,
-        // beforeTest
-        () => Promise.resolve({ timeout: false, foo: "bar" }),
-        t.beforeBeacon || (() => Promise.resolve()),
-        t.sendBeacon || (() => {}),
-        // afterTest
-        (_result: any) => {},
-        t.onError ||
-            (() => {
-                // Normal behavior is to swallow the error
-                // Test might override this if they need to examine it
-            }),
-    )
-}
-
-type SetTimeoutSignature = (
-    setTimeoutCallback: () => void,
-    timeout: number,
-) => void
-
-type TestConfig = {
-    description: string
-    newAbortControllerResult: AbortController | null
-    fetchImplementation: (
-        url: string,
-        options?: RequestInit,
-    ) => Promise<Response>
-    newDateResults: Date[]
-    setTimeoutResults: SetTimeoutSignature[]
-    fetchInvocations: { url: string; requestHeaders?: Record<string, string> }[]
-    performanceEntryLists: PerformanceEntryList[]
-    beforeBeacon?: (
-        result: any,
-        response: Response,
-        performanceEntry: PerformanceEntry,
-    ) => Promise<void>
-    sendBeacon?: (result: any) => void
-    onError?: (e: unknown) => void
-    validations?: {
-        clearTimeout?: (m: jest.Mock) => void
-        fetch?: (m: jest.Mock) => void
-        onError?: (m: jest.Mock) => void
+test("Find entry after multiple retries", async () => {
+    const mockPerformanceObserver = new TestPerformanceObserver()
+    const performanceEntryManagerDependencies = {
+        newDate: jest.fn(),
+        newPerformanceObserver: jest
+            .fn<PerformanceObserver, [PerformanceObserverCallback]>()
+            .mockReturnValue(mockPerformanceObserver),
     }
-}
-
-const testCases: TestConfig[] = [
-    {
-        description: "Resource Timing entry found after multiple retries",
-        newAbortControllerResult: new TestAbortController(),
-        fetchImplementation: newFetchImplementationWithBlob(
-            new Blob(["{}"], { type: "application/json" }),
+    const testAbortController = new TestAbortController()
+    const testResponse = {
+        blob: jest
+            .fn()
+            .mockResolvedValueOnce(
+                new Blob(["{}"], { type: "application/json" }),
+            ),
+    }
+    const dependencies = {
+        clearTimeout: jest.fn(),
+        fetch: jest.fn().mockResolvedValueOnce(testResponse),
+        newAbortController: jest.fn().mockReturnValueOnce(testAbortController),
+        newDate: jest
+            .fn()
+            .mockReturnValueOnce(new Date("2020-01-10T10:20:00Z"))
+            .mockReturnValueOnce(new Date("2020-01-10T10:20:00.2Z"))
+            .mockReturnValueOnce(new Date("2020-01-10T10:20:00.4Z")),
+        performanceEntryManager: new PerformanceEntryManager(
+            performanceEntryManagerDependencies,
         ),
-        newDateResults: [
-            new Date("2020-01-17T03:24:00Z"),
-            new Date("2020-01-17T03:24:01Z"),
-            new Date("2020-01-17T03:24:02Z"),
-        ],
-        setTimeoutResults: [
-            () => {},
-            (setTimeoutCallback) => {
-                setTimeoutCallback()
-            },
-            (setTimeoutCallback) => {
-                setTimeoutCallback()
-            },
-        ],
-        fetchInvocations: [
-            { url: "https://entry-found-after-multiple-retries" },
-        ],
-        performanceEntryLists: [[new TestPerformanceResourceTiming("foo", {})]],
-        validations: {
-            clearTimeout: (m) => {
-                console.log(m)
-                expect(m).toHaveBeenCalledTimes(1)
-            },
+        setTimeout: jest.fn(),
+    }
+
+    // Code under test
+    const fetchResult = fetch(
+        dependencies,
+        "http://foo/test",
+        10000,
+        { foo: "bar" },
+        () => Promise.resolve({ timeout: false }),
+        // beforeBeacon
+        () => Promise.resolve(),
+        // sendBeacon
+        () => {},
+        // afterTest
+        () => {},
+        // onError
+        (e) => {
+            console.warn(e)
         },
-    },
-    {
-        description: "Simultaneous measurements are prevented",
-        newAbortControllerResult: new TestAbortController(),
-        fetchImplementation: newFetchImplementationWithBlob(
-            new Blob(["{}"], { type: "application/json" }),
+    )
+    const prodPerformanceObserverCallback =
+        performanceEntryManagerDependencies.newPerformanceObserver.mock
+            .calls[0][0]
+
+    // Simulate production code not finding the entry
+    prodPerformanceObserverCallback(
+        newPerformanceObserverEntryList([]),
+        mockPerformanceObserver,
+    )
+
+    // Await asynchronously in order to let other tasks run
+    await asyncFunc(async () => {
+        // Simulate retry
+        dependencies.setTimeout.mock.calls[1][0]()
+        await asyncFunc(async () => {
+            dependencies.setTimeout.mock.calls[2][0]()
+
+            // Allow production code to "find" the entry before the next
+            // simulated timeout elapses
+            prodPerformanceObserverCallback(
+                newPerformanceObserverEntryList([
+                    new TestPerformanceResourceTiming(),
+                ]),
+                mockPerformanceObserver,
+            )
+            await asyncFunc(() => dependencies.setTimeout.mock.calls[3][0]())
+        })
+    })
+
+    await fetchResult
+
+    // Verify
+    expect(
+        performanceEntryManagerDependencies.newPerformanceObserver,
+    ).toHaveBeenCalledTimes(1)
+    expect(dependencies.newDate).toHaveBeenCalledTimes(3)
+})
+
+test("Prevent simultaneous measurements", async () => {
+    const mockPerformanceObserver = new TestPerformanceObserver()
+    const performanceEntryManagerDependencies = {
+        newDate: jest.fn(),
+        newPerformanceObserver: jest
+            .fn<PerformanceObserver, [PerformanceObserverCallback]>()
+            .mockReturnValue(mockPerformanceObserver),
+    }
+    const testAbortController = new TestAbortController()
+    const testResponse = {
+        blob: jest
+            .fn()
+            .mockResolvedValueOnce(
+                new Blob(["{}"], { type: "application/json" }),
+            ),
+    }
+    const dependencies = {
+        clearTimeout: jest.fn(),
+        fetch: jest.fn().mockResolvedValueOnce(testResponse),
+        newAbortController: jest.fn().mockReturnValueOnce(testAbortController),
+        newDate: jest
+            .fn()
+            .mockReturnValueOnce(new Date("2020-01-10T10:20:00Z"))
+            .mockReturnValueOnce(new Date("2020-01-10T10:20:00.2Z"))
+            .mockReturnValueOnce(new Date("2020-01-10T10:20:00.4Z")),
+        performanceEntryManager: new PerformanceEntryManager(
+            performanceEntryManagerDependencies,
         ),
-        newDateResults: [
-            new Date("2020-01-17T03:24:00Z"),
-            new Date("2020-01-17T03:24:00.2Z"),
-        ],
-        setTimeoutResults: [
-            () => {},
-            (setTimeoutCallback) => {
-                setTimeoutCallback()
-            },
-        ],
-        fetchInvocations: [
-            { url: "https://simultaneous-measurements-prevented/1" },
-            { url: "https://simultaneous-measurements-prevented/2" },
-        ],
-        performanceEntryLists: [[new TestPerformanceResourceTiming("foo", {})]],
-        onError: jest.fn(),
-        validations: {
-            onError: (m) => {
-                const typed = m.mock
-                    .calls[0][0] as RegisteredCallbackNotConsumedError
-                expect(typed.message).toBe(
-                    "Callback not consumed (being added: https://simultaneous-measurements-prevented/2, still registered: https://simultaneous-measurements-prevented/1)",
-                )
-                expect(typed.urlBeingAdded).toBe(
-                    "https://simultaneous-measurements-prevented/2",
-                )
-                expect(typed.urlStillRegistered).toBe(
-                    "https://simultaneous-measurements-prevented/1",
-                )
-            },
+        setTimeout: jest.fn(),
+    }
+
+    // Code under test
+    const fetchResult1 = fetch(
+        dependencies,
+        "http://foo/test1",
+        10000,
+        { foo: "bar" },
+        () => Promise.resolve({ timeout: false }),
+        // beforeBeacon
+        () => Promise.resolve(),
+        // sendBeacon
+        () => {},
+        // afterTest
+        () => {},
+        // onError
+        (e) => {
+            console.warn(e)
         },
-    },
-    {
-        description: "Timeout reached during fetch",
-        newAbortControllerResult: new TestAbortController(),
-        fetchImplementation: () => {
-            throw "Some browser-specific error talking about how this download failed"
-        },
-        newDateResults: [new Date("2020-01-17T03:24:00Z")],
-        setTimeoutResults: [
-            (setTimeoutCallback) => {
-                console.warn("Timeout handler 1")
-                setTimeoutCallback()
-            },
-        ],
-        fetchInvocations: [{ url: "https://www.example.com/3/test" }],
-        performanceEntryLists: [],
-        sendBeacon: (result) => {
-            expect(result.error).toBe(
-                "Some browser-specific error talking about how this download failed",
+    )
+    let expectedErrorCaught = false
+    const fetchResult2 = fetch(
+        dependencies,
+        "http://foo/test2",
+        10000,
+        { foo: "bar" },
+        () => Promise.resolve({ timeout: false }),
+        // beforeBeacon
+        () => Promise.resolve(),
+        // sendBeacon
+        () => {},
+        // afterTest
+        () => {},
+        // onError
+        (e) => {
+            expect(e).toEqual(
+                new RegisteredCallbackNotConsumedError(
+                    "http://foo/test2",
+                    "http://foo/test1",
+                ),
             )
+            expectedErrorCaught = true
         },
-    },
-    {
-        description: "Resource Timing entry fails to appear",
-        newAbortControllerResult: new TestAbortController(),
-        fetchImplementation: newFetchImplementationWithBlob(
-            new Blob(["{}"], { type: "application/json" }),
+    )
+
+    await fetchResult2
+    const prodPerformanceObserverCallback =
+        performanceEntryManagerDependencies.newPerformanceObserver.mock
+            .calls[0][0]
+
+    // Simulate production code not finding the entry
+    prodPerformanceObserverCallback(
+        newPerformanceObserverEntryList([new TestPerformanceResourceTiming()]),
+        mockPerformanceObserver,
+    )
+    await fetchResult1
+
+    // Verify
+    expect(expectedErrorCaught).toBe(true)
+}, 500)
+
+test("Performance entry not found", async () => {
+    const mockPerformanceObserver = new TestPerformanceObserver()
+    const performanceEntryManagerDependencies = {
+        newDate: jest.fn(),
+        newPerformanceObserver: jest
+            .fn<PerformanceObserver, [PerformanceObserverCallback]>()
+            .mockReturnValue(mockPerformanceObserver),
+    }
+    const testAbortController = new TestAbortController()
+    const testResponse = {
+        blob: jest
+            .fn()
+            .mockResolvedValueOnce(
+                new Blob(["{}"], { type: "application/json" }),
+            ),
+    }
+    const dependencies = {
+        clearTimeout: jest.fn(),
+        fetch: jest.fn().mockResolvedValueOnce(testResponse),
+        newAbortController: jest.fn().mockReturnValueOnce(testAbortController),
+        newDate: jest
+            .fn()
+            .mockReturnValueOnce(new Date("2020-01-10T10:20:00Z")),
+        performanceEntryManager: new PerformanceEntryManager(
+            performanceEntryManagerDependencies,
         ),
-        newDateResults: (() => {
-            const result = [new Date("2020-01-17T03:24:00Z")]
-            for (let i = 0; i < 20; i++) {
-                // Add 100 milliseconds to each successive Date
-                result.push(new Date(result[i].getTime() + 100))
-            }
-            return result
-        })(),
-        setTimeoutResults: (() => {
-            const result: SetTimeoutSignature[] = [() => {}]
-            for (let i = 0; i < 20; i++) {
-                result.push((setTimeoutCallback) => {
-                    setTimeoutCallback()
-                })
-            }
-            return result
-        })(),
-        fetchInvocations: [{ url: "https://entry-fails-to-appear" }],
-        performanceEntryLists: Array(20).fill([]),
-        onError: jest.fn(),
-        validations: {
-            onError: (m) => {
-                const typed = m.mock.calls[0][0] as PerformanceEntryAwaitTimeout
-                expect(typed.message).toBe(
-                    "Failed to find an entry for https://entry-fails-to-appear after 2000 milliseconds (max wait 2000)",
-                )
-                expect(typed.url).toBe("https://entry-fails-to-appear")
-                expect(typed.duration).toBe(2000)
-                expect(typed.maxWait).toBe(2000)
-            },
-        },
-    },
-    {
-        description: "Timeout reached during response.blob",
-        newAbortControllerResult: new TestAbortController(),
-        fetchImplementation: () =>
-            Promise.resolve({
-                blob: () => {
-                    throw "Some browser-specific error talking about how this download failed (response.blob)"
-                },
-            } as unknown as Response),
-        newDateResults: [new Date("2020-01-17T03:24:00Z")],
-        setTimeoutResults: [
-            (setTimeoutCallback) => {
-                console.warn("Timeout handler 1")
-                setTimeoutCallback()
-            },
-        ],
-        fetchInvocations: [{ url: "https://www.example.com/4/test" }],
-        performanceEntryLists: [],
-        sendBeacon: (result) => {
-            expect(result.error).toBe(
-                "Some browser-specific error talking about how this download failed (response.blob)",
+        setTimeout: jest.fn(),
+    }
+
+    for (
+        let i = 0, date = new Date("2020-01-10T10:20:00Z");
+        i < 100;
+        i++, date = new Date(date.getTime() + 200)
+    ) {
+        dependencies.newDate.mockReturnValueOnce(date)
+    }
+
+    // Code under test
+    let expectedErrorCaught = false
+    const fetchResult = fetch(
+        dependencies,
+        "http://foo/test",
+        10000,
+        { foo: "bar" },
+        () => Promise.resolve({ timeout: false }),
+        // beforeBeacon
+        () => Promise.resolve(),
+        // sendBeacon
+        () => {},
+        // afterTest
+        () => {},
+        // onError
+        (e) => {
+            expect(e).toEqual(
+                new PerformanceEntryAwaitTimeout("http://foo/test", 2000, 2000),
             )
+            expectedErrorCaught = true
         },
-    },
-    {
-        description: "Send custom request headers",
-        newAbortControllerResult: new TestAbortController(),
-        fetchImplementation: newFetchImplementationWithBlob(
-            new Blob(["{}"], { type: "application/json" }),
+    )
+
+    for (let i = 1; i < 12; i++) {
+        await asyncFunc(() => {
+            dependencies.setTimeout.mock.calls[i][0]()
+        })
+    }
+
+    await fetchResult
+
+    // Verify
+    expect(expectedErrorCaught).toBe(true)
+})
+
+test("Timeout during blob phase", async () => {
+    const mockPerformanceObserver = new TestPerformanceObserver()
+    const performanceEntryManagerDependencies = {
+        newDate: jest.fn(),
+        newPerformanceObserver: jest
+            .fn<PerformanceObserver, [PerformanceObserverCallback]>()
+            .mockReturnValue(mockPerformanceObserver),
+    }
+    const testAbortController = new TestAbortController()
+    const testResponse = {
+        blob: jest.fn().mockImplementationOnce(() => {
+            // Simulate a timeout
+            dependencies.setTimeout.mock.calls[0][0]()
+            throw "Some browser-specific way of saying that the download was cancelled"
+        }),
+    }
+    const dependencies = {
+        clearTimeout: jest.fn(),
+        fetch: jest.fn().mockResolvedValueOnce(testResponse),
+        newAbortController: jest.fn().mockReturnValueOnce(testAbortController),
+        newDate: jest
+            .fn()
+            .mockReturnValueOnce(new Date("2020-01-10T10:20:00Z")),
+        performanceEntryManager: new PerformanceEntryManager(
+            performanceEntryManagerDependencies,
         ),
-        newDateResults: [
-            new Date("2020-01-17T03:24:00Z"),
-            new Date("2020-01-17T03:24:01Z"),
-        ],
-        setTimeoutResults: [
-            () => {},
-            (setTimeoutCallback) => {
-                setTimeoutCallback()
-            },
-        ],
-        fetchInvocations: [
-            {
-                url: "https://send-custom-request-headers",
-                requestHeaders: { foo: "bar" },
-            },
-        ],
-        performanceEntryLists: [[new TestPerformanceResourceTiming("foo", {})]],
-        validations: {
-            fetch: (m) => {
-                expect(m.mock.calls[0][0]).toBe(
-                    "https://send-custom-request-headers",
-                )
-                expect(m.mock.calls[0][1].headers).toEqual({ foo: "bar" })
-            },
+        setTimeout: jest.fn(),
+    }
+
+    for (
+        let i = 0, date = new Date("2020-01-10T10:20:00Z");
+        i < 100;
+        i++, date = new Date(date.getTime() + 200)
+    ) {
+        dependencies.newDate.mockReturnValueOnce(date)
+    }
+
+    // Code under test
+    const result = { timeout: false }
+    const fetchResult = fetch(
+        dependencies,
+        "http://foo/test",
+        10000,
+        { foo: "bar" },
+        () => Promise.resolve(result),
+        // beforeBeacon
+        () => Promise.resolve(),
+        // sendBeacon
+        (result) => {
+            console.log(result)
         },
-    },
-]
-
-testCases.forEach((t) =>
-    test(
-        t.description,
-        async () => {
-            if (t.newAbortControllerResult) {
-                dependencies.newAbortController.mockReturnValueOnce(
-                    t.newAbortControllerResult,
-                )
-            }
-            dependencies.fetch.mockImplementationOnce(t.fetchImplementation)
-            t.newDateResults.forEach((d) =>
-                dependencies.newDate.mockReturnValueOnce(d),
-            )
-            t.setTimeoutResults.forEach((sig) =>
-                dependencies.setTimeout.mockImplementationOnce(sig),
-            )
-
-            // Code under test
-            let fetchResult: Promise<void | void[]>
-            if (t.fetchInvocations.length > 1) {
-                fetchResult = Promise.all(
-                    t.fetchInvocations.map((invocationConfig) =>
-                        invokeFetch(
-                            t,
-                            invocationConfig.url,
-                            invocationConfig.requestHeaders != undefined
-                                ? invocationConfig.requestHeaders
-                                : null,
-                        ),
-                    ),
-                )
-            } else {
-                const invocationConfig = t.fetchInvocations[0]
-                fetchResult = invokeFetch(
-                    t,
-                    invocationConfig.url,
-                    invocationConfig.requestHeaders != undefined
-                        ? invocationConfig.requestHeaders
-                        : null,
-                )
-            }
-            console.log("Test: Invoked fetch")
-            console.log(fetchResult)
-
-            // At this point openinsights.fetch has been called, possibly
-            // multiple times. At some point in the future, the PerformanceObserver
-            // encapsulated in dependencies.performanceEntryManager will notice
-            // that an entry matching the test object's URL exists. It's callback
-            // may be invoked many times before this happens, however.
-
-            t.performanceEntryLists.forEach((entries) => {
-                const mockGetEntriesByName = jest
-                    .fn()
-                    .mockReturnValueOnce(entries)
-                fakePerformanceObserver.callback(
-                    {
-                        getEntries: function (): PerformanceEntryList {
-                            throw new Error("Function not implemented.")
-                        },
-                        getEntriesByName: mockGetEntriesByName,
-                        getEntriesByType: function (
-                            _type: string,
-                        ): PerformanceEntryList {
-                            throw new Error("Function not implemented.")
-                        },
-                    },
-                    fakePerformanceObserver,
-                )
-                console.log(mockGetEntriesByName.mock.calls)
-            })
-
-            console.log("Test: awaiting fetch result")
-            console.log(fetchResult)
-            await fetchResult
-
-            // Validate calls on mock functions
-            if (t.validations) {
-                if (t.validations.clearTimeout) {
-                    t.validations.clearTimeout(dependencies.clearTimeout)
-                }
-                if (t.validations.fetch) {
-                    t.validations.fetch(dependencies.fetch)
-                }
-                if (t.validations.onError) {
-                    t.validations.onError(t.onError as jest.Mock)
-                }
-            }
+        // afterTest
+        (result) => {
+            console.log(result)
         },
-        // Fail fast (temporary)
-        // 500,
-    ),
-)
+        // onError
+        (e) => {
+            console.warn(e)
+        },
+    )
+
+    await fetchResult
+
+    // Verify
+    expect(result.timeout).toBe(true)
+}, 500)

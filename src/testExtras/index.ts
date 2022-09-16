@@ -1,3 +1,22 @@
+/**
+ * Run a quick asynchronous function
+ */
+export function asyncFunc<T>(fn: () => T) {
+    return new Promise<T>((resolve) => setTimeout(() => resolve(fn()), 0))
+}
+
+export function newPerformanceObserverEntryList(entries: PerformanceEntryList) {
+    return {
+        getEntries: () => {
+            throw "Unexpected call"
+        },
+        getEntriesByName: jest.fn().mockReturnValueOnce(entries),
+        getEntriesByType: () => {
+            throw "Unexpected call"
+        },
+    }
+}
+
 export type PerformanceTimingProperties = {
     transferSize?: number
     encodedBodySize?: number
@@ -20,7 +39,10 @@ export type PerformanceTimingProperties = {
 export class TestPerformanceResourceTiming
     implements PerformanceResourceTiming
 {
-    constructor(name: string, props: PerformanceTimingProperties) {
+    constructor(
+        name = "https://www.example.com/testobject",
+        props: PerformanceTimingProperties = {},
+    ) {
         const getNumericProperty = (
             setting: number | undefined,
             defaultValue: number,
@@ -161,7 +183,15 @@ export class TestAbortController implements AbortController {
     abort(reason?: any): void
     abort(): void
     abort(_reason?: unknown): void {
-        // Do nothing. Calling this function manifests at an error thrown by
-        // the fetch sequence (e.g. fetch() or response.blob())
+        // Do nothing. In production, calling this function manifests as an
+        // error thrown by the fetch sequence. Simulate these in testing by
+        // throwing an error from the mock implementations of fetch() and
+        // response.blob().
     }
+}
+
+export class TestPerformanceObserver implements PerformanceObserver {
+    disconnect = jest.fn()
+    observe = jest.fn()
+    takeRecords = jest.fn()
 }

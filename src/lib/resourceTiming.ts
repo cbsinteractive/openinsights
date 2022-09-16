@@ -1,43 +1,18 @@
 export class RegisteredCallbackNotConsumedError extends Error {
-    constructor(
-        private _urlBeingAdded: string,
-        private _urlStillRegistered: string,
-    ) {
+    constructor(urlBeingAdded: string, urlStillRegistered: string) {
         super(
-            `Callback not consumed (being added: ${_urlBeingAdded}, still registered: ${_urlStillRegistered})`,
+            `Callback not consumed (being added: ${urlBeingAdded}, still registered: ${urlStillRegistered})`,
         )
         Object.setPrototypeOf(this, new.target.prototype)
-    }
-
-    get urlStillRegistered() {
-        return this._urlStillRegistered
-    }
-
-    get urlBeingAdded() {
-        return this._urlBeingAdded
     }
 }
 
 export class PerformanceEntryAwaitTimeout extends Error {
-    constructor(
-        private _url: string,
-        private _duration: number,
-        private _maxWait: number,
-    ) {
+    constructor(url: string, duration: number, maxWait: number) {
         super(
-            `Failed to find an entry for ${_url} after ${_duration} milliseconds (max wait ${_maxWait})`,
+            `Failed to find an entry for ${url} after ${duration} milliseconds (max wait ${maxWait})`,
         )
         Object.setPrototypeOf(this, new.target.prototype)
-    }
-
-    get url() {
-        return this._url
-    }
-    get duration() {
-        return this._duration
-    }
-    get maxWait() {
-        return this._maxWait
     }
 }
 
@@ -77,7 +52,6 @@ export class PerformanceEntryManager {
                         this._callbackBundle.url,
                         "resource",
                     )
-                    console.log(entries)
                     if (entries.length) {
                         this._observer.disconnect()
                         // We could validate the entry `name` property, but
@@ -101,10 +75,6 @@ export class PerformanceEntryManager {
         // emitting events when new objects arrive that can't be buffered.
         // If that's the case, it might be better to tailor a solution for
         // that scenario.
-        console.warn(
-            "TODO: Clearing Resource Timing buffer may not be necessary",
-        )
-        console.warn("Clearing Resource Timing buffer")
         performance.clearResourceTimings()
     }
 
@@ -158,7 +128,6 @@ export class EntryAwaiter {
     ) {
         console.log("Registering performance entry manager callback")
         performanceEntryManager.registerCallback(_url, (entry) => {
-            console.log(`Found entry! ${JSON.stringify(entry)}`)
             this._entry = entry
         })
     }
@@ -187,7 +156,7 @@ export class EntryAwaiter {
                     this._setTimeout(resolve as () => void, 100)
                 }),
             ])
-            console.log(result)
+            console.log(`Prod: Entry await result: ${result[0]}, ${result[1]}`)
             if (result[0]) {
                 entry = result[0]
                 break
