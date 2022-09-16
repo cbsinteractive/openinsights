@@ -36,6 +36,13 @@ type Dependencies = {
     ) => PerformanceObserver
 }
 
+/**
+ * A class to monitor the Resource Timing buffer for entries of interest.
+ * Only one URL at a time is supported. Clients should be prepared to handle
+ * any {@link RegisteredCallbackNotConsumedError} that may occur as a result.
+ * We base this limitation on the idea that it's better avoid measuring
+ * resources in parallel.
+ */
 export class PerformanceEntryManager {
     private _observer
     private _callbackBundle?: RegisteredCallbackBundle

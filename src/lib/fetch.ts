@@ -20,16 +20,16 @@ export type FetchTestResult = {
  * An asynchronous function encapsulating a configurable test based on the
  * [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API).
  *
- * @param dependencies
- * @param url
- * @param fetchTimeout
- * @param requestHeaders
- * @param beforeTest
+ * @param dependencies A set of dependencies required to perform a fetch test.
+ * @param url The URL to test.
+ * @param fetchTimeout The maximum time to wait in milliseconds before cancelling the test.
+ * @param requestHeaders An optional set of request headers to send when fetching the test resource.
+ * @param beforeTest A callback to run before issuing the fetch request
  * @param beforeBeacon A callback giving the client an opportunity to produce
  * update their test result based on the Response object and the Resource Timing
  * entry. This *might* involve network activity, so it returns a promise.
- * @param sendBeacon
- * @param afterTest
+ * @param sendBeacon A callback allowing the client to send a beacon.
+ * @param afterTest A callback allowing the client to perform an cleanup work.
  * @param onError A callback invoked if any error is encounter *outside of*
  * the fetch request context.
  */
