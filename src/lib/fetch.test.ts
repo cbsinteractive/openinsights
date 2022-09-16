@@ -53,9 +53,7 @@ test("Find entry immediately", async () => {
         // afterTest
         () => {},
         // onError
-        (e) => {
-            console.warn(e)
-        },
+        () => {},
     )
     const prodPerformanceObserverCallback =
         performanceEntryManagerDependencies.newPerformanceObserver.mock
@@ -121,9 +119,7 @@ test("Find entry after multiple retries", async () => {
         // afterTest
         () => {},
         // onError
-        (e) => {
-            console.warn(e)
-        },
+        () => {},
     )
     const prodPerformanceObserverCallback =
         performanceEntryManagerDependencies.newPerformanceObserver.mock
@@ -208,9 +204,7 @@ test("Prevent simultaneous measurements", async () => {
         // afterTest
         () => {},
         // onError
-        (e) => {
-            console.warn(e)
-        },
+        () => {},
     )
     let expectedErrorCaught = false
     const fetchResult2 = fetch(
@@ -373,17 +367,11 @@ test("Timeout during blob phase", async () => {
         // beforeBeacon
         () => Promise.resolve(),
         // sendBeacon
-        (result) => {
-            console.log(result)
-        },
+        () => {},
         // afterTest
-        (result) => {
-            console.log(result)
-        },
+        () => {},
         // onError
-        (e) => {
-            console.warn(e)
-        },
+        () => {},
     )
 
     await fetchResult

@@ -51,7 +51,6 @@ export async function fetch<T extends FetchTestResult>(
     afterTest: (result: T) => void,
     onError: (error: unknown) => void,
 ) {
-    console.log("Prod: entered fetch")
     try {
         const entryAwaiter = new EntryAwaiter(
             url,
@@ -73,26 +72,18 @@ export async function fetch<T extends FetchTestResult>(
                 result.entry = entry
                 // Give the caller an opportunity to adorn the result based
                 // on the response and performance entry
-                console.log("Prod: awaiting beforeBeacon")
                 await beforeBeacon(result, response, entry)
-                console.log("Prod: returned from beforeBeacon")
             }
         }
-        console.log("Prod: calling sendBeacon")
         sendBeacon(result)
-        console.log("Prod: calling afterTest")
         afterTest(result)
     } catch (e) {
         // Swallow errors but provide caller with an opportunity to respond
-        console.log(`Prod: calling onError (url: ${url})`)
         onError(e)
-        console.log(`Prod: called onError (url: ${url})`)
     }
-    console.log("Prod: unregistering callback")
     // Unregistering the performance entry callback **once**, as late as in
     // the measurement sequences as possible
     dependencies.performanceEntryManager.unregisterCallback(url)
-    console.log("Prod: leaving fetch")
 }
 
 async function fetchObject<T extends FetchTestResult>(
@@ -125,7 +116,6 @@ async function fetchObject<T extends FetchTestResult>(
         dependencies.clearTimeout(timeoutID)
         return response
     } catch (e) {
-        console.warn(e)
         // Let caller handle the error later
         result.error = e
     }

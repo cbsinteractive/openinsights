@@ -42,7 +42,6 @@ export class PerformanceEntryManager {
     constructor(private _dependencies: Dependencies) {
         this._observer = this._dependencies.newPerformanceObserver(
             (entryList) => {
-                console.log("PerformanceObserver callback invoked")
                 if (this._callbackBundle != undefined) {
                     // Note that getEntriesBy... *can* produce multiple
                     // records for the same URL. However, this would be
@@ -78,7 +77,6 @@ export class PerformanceEntryManager {
      * is observed.
      */
     registerCallback(url: string, callback: (entry: PerformanceEntry) => void) {
-        console.log(`Registering callback for ${url}`)
         if (this._callbackBundle) {
             throw new RegisteredCallbackNotConsumedError(
                 url,
@@ -118,7 +116,6 @@ export class EntryAwaiter {
         private _setTimeout: (fn: () => void, timeout: number) => number,
         performanceEntryManager: PerformanceEntryManager,
     ) {
-        console.log("Registering performance entry manager callback")
         performanceEntryManager.registerCallback(_url, (entry) => {
             this._entry = entry
         })
@@ -138,9 +135,6 @@ export class EntryAwaiter {
                     resolve(this._entry)
                 }),
                 new Promise((resolve) => {
-                    console.log(
-                        "Prod: setting timeout waiting for performance entry callback to be invoked",
-                    )
                     this._setTimeout(resolve as () => void, 100)
                 }),
             ])

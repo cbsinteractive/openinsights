@@ -135,59 +135,22 @@ export class TestPerformanceResourceTiming
 export class TestAbortSignal implements AbortSignal {
     aborted = false
     onabort = null
-    reason: any
-    throwIfAborted(): void {
-        throw new Error("Method not implemented.")
-    }
-    addEventListener<K extends "abort">(
-        type: K,
-        listener: (this: AbortSignal, ev: AbortSignalEventMap[K]) => any,
-        options?: boolean | AddEventListenerOptions | undefined,
-    ): void
-    addEventListener(
-        type: string,
-        listener: EventListenerOrEventListenerObject,
-        options?: boolean | AddEventListenerOptions | undefined,
-    ): void
-    addEventListener(
-        _type: unknown,
-        _listener: unknown,
-        _options?: unknown,
-    ): void {
-        throw new Error("Method not implemented.")
-    }
-    removeEventListener<K extends "abort">(
-        type: K,
-        listener: (this: AbortSignal, ev: AbortSignalEventMap[K]) => any,
-        options?: boolean | EventListenerOptions | undefined,
-    ): void
-    removeEventListener(
-        type: string,
-        listener: EventListenerOrEventListenerObject,
-        options?: boolean | EventListenerOptions | undefined,
-    ): void
-    removeEventListener(
-        _type: unknown,
-        _listener: unknown,
-        _options?: unknown,
-    ): void {
-        throw new Error("Method not implemented.")
-    }
-    dispatchEvent(_event: Event): boolean {
-        throw new Error("Method not implemented.")
-    }
+    reason = "unknown"
+    throwIfAborted = jest.fn()
+    addEventListener = jest.fn()
+    removeEventListener = jest.fn()
+    dispatchEvent = jest.fn()
 }
 
 export class TestAbortController implements AbortController {
     signal: AbortSignal = new TestAbortSignal()
-    abort(reason?: any): void
-    abort(): void
-    abort(_reason?: unknown): void {
-        // Do nothing. In production, calling this function manifests as an
-        // error thrown by the fetch sequence. Simulate these in testing by
-        // throwing an error from the mock implementations of fetch() and
-        // response.blob().
-    }
+    /**
+     * In general, the mock implementation should do nothing. In production,
+     * calling this function manifests as an error thrown by the fetch sequence.
+     * Simulate these in testing by throwing an error from the mock
+     * implementations of fetch() and response.blob().
+     */
+    abort = jest.fn()
 }
 
 export class TestPerformanceObserver implements PerformanceObserver {
