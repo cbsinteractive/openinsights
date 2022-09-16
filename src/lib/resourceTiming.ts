@@ -42,6 +42,7 @@ export class PerformanceEntryManager {
     constructor(private _dependencies: Dependencies) {
         this._observer = this._dependencies.newPerformanceObserver(
             (entryList) => {
+                console.log("PerformanceObserver callback invoked")
                 if (this._callbackBundle != undefined) {
                     // Note that getEntriesBy... *can* produce multiple
                     // records for the same URL. However, this would be
@@ -53,7 +54,6 @@ export class PerformanceEntryManager {
                         "resource",
                     )
                     if (entries.length) {
-                        this._observer.disconnect()
                         // We could validate the entry `name` property, but
                         // we're counting on getEntriesByName to do the right
                         // thing
@@ -68,14 +68,6 @@ export class PerformanceEntryManager {
             // Disregard entries buffered before the observer was created
             buffered: false,
         })
-    }
-
-    onResourceTimingBufferFull(performance: Performance) {
-        // Testing suggests that Firefox is the only major browser that stops
-        // emitting events when new objects arrive that can't be buffered.
-        // If that's the case, it might be better to tailor a solution for
-        // that scenario.
-        performance.clearResourceTimings()
     }
 
     /**
@@ -133,9 +125,6 @@ export class EntryAwaiter {
     }
 
     async awaitEntry() {
-        console.log(
-            `Prod: inside awaitEntry, entry is ${JSON.stringify(this._entry)}`,
-        )
         if (this._entry) {
             return this._entry
         }
@@ -144,7 +133,6 @@ export class EntryAwaiter {
         const MAX_WAIT = 2000
         let diff = MAX_WAIT
         do {
-            console.log("Awaiting Promise.all")
             const result = await Promise.all([
                 new Promise((resolve: (entry?: PerformanceEntry) => void) => {
                     resolve(this._entry)
@@ -156,15 +144,12 @@ export class EntryAwaiter {
                     this._setTimeout(resolve as () => void, 100)
                 }),
             ])
-            console.log(`Prod: Entry await result: ${result[0]}, ${result[1]}`)
             if (result[0]) {
                 entry = result[0]
                 break
             }
             const newDate = this._newDate()
-            console.log(newDate)
             diff = newDate.getTime() - beganAt
-            console.log(`Calculated diff ${diff} milliseconds`)
         } while (!entry && diff < MAX_WAIT)
         if (entry) {
             return entry

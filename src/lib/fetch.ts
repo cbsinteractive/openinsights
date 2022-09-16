@@ -103,7 +103,6 @@ async function fetchObject<T extends FetchTestResult>(
     result: T,
 ) {
     const abortController = dependencies.newAbortController()
-    console.log(`Prod: abort controller: ${abortController}`)
     const timeoutID = dependencies.setTimeout(() => {
         // Record that a timeout took place
         result.timeout = true
