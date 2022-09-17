@@ -78,7 +78,7 @@ const customFetchBehavior = (sessionConfiguration, url) => async () => {
     /**
      * onError
      */
-    (error: unknown) => {},
+    (error) => {},
   )
 }
 
