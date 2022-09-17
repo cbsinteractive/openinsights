@@ -8,13 +8,13 @@ jest.mock("./lib/start")
 const tests = [
     {
         description: "run now",
-        sessionConfigDelay: 0,
+        delay: 0,
         callsStart: true,
         callsStartLater: false,
     },
     {
         description: "run later",
-        sessionConfigDelay: 1,
+        delay: 1,
         callsStart: false,
         callsStartLater: true,
     },
@@ -31,7 +31,7 @@ tests.forEach((t) => {
         await init(
             () => "complete",
             () => {},
-            t.sessionConfigDelay,
+            t.delay,
             [],
         )
         if (t.callsStart) {

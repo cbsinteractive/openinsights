@@ -8,23 +8,22 @@ import { loadWhenReady } from "./lib/whenDocumentReady"
  *
  * @remarks
  * Waits for the page to load before processing.
- *
- * @param settings Specifies settings affecting client behavior. These are
- * determined by the tag owner at runtime, so may be used to specify page-level
- * overrides to general defaults.
  */
 export function init(
     getDocumentReadyState: () => DocumentReadyState,
     addDocumentReadyStateChangeListener: (callback: () => void) => void,
-    sessionConfigDelay: number,
+    sessionConfigDelayInMilliseconds: number,
     sessionStartupFuncs: SessionStartupFuncs[],
 ): Promise<SessionResult> {
     return loadWhenReady(
         getDocumentReadyState,
         addDocumentReadyStateChangeListener,
     ).then(() => {
-        if (sessionConfigDelay) {
-            return startLater(sessionConfigDelay, sessionStartupFuncs)
+        if (sessionConfigDelayInMilliseconds > 0) {
+            return startLater(
+                sessionConfigDelayInMilliseconds,
+                sessionStartupFuncs,
+            )
         }
         return start(sessionStartupFuncs)
     })

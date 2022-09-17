@@ -4,18 +4,131 @@
 
 Open Insights is a framework for constructing browser-based RUM clients.
 
-It allows a site owner to construct their own client using one or more "providers". The client is then self-hosted and deployed alongside the rest of their JavaScript resources.
-
-This repository contains the framework "core" component. This component is meant to be added to the site ownder's project along with one or more providers. The providers are then imported by the site owner's code, and everything is compiled to produce a client JavaScript file deployable to production.
-
-See [Open Insights CBSi Demo](https://github.com/cbsinteractive/open-insights-cbsi-demo) for a demonstration of how to compile a client.
-
 ## Why Use It
 
 - Open Insights represents a collaboration by industry members to measure, and ultimately improve, the internet as a whole.
 - Open Insights is designed to work with multiple vendors.
 - Open Insights is meant to be self-hosted, unlike many vendor-centric, browser-based RUM clients.
 - Open Insights gives the site owner control over code compilation and included functionality.
+
+## Example
+
+```typescript
+import * as openinsights from "@tacoherd/openinsights"
+
+const openinsightsFetchDependencies = {
+  clearTimeout: (timeoutID) => clearTimeout(timeoutID),
+  fetch: (url, options) => fetch(url, options),
+  newAbortController: () => new AbortController(),
+  newDate: () => new Date(),
+  performanceEntryManager: new openinsights.PerformanceEntryManager({
+    newDate: () => new Date(),
+    newPerformanceObserver: (callback) => new PerformanceObserver(callback),
+  }),
+  setTimeout: (fn, timeout) => setTimeout(fn as TimerHandler, timeout),
+}
+
+const customFetchBehavior = (sessionConfiguration, url) => async () => {
+  console.log(sessionConfiguration)
+  openinsights.fetch(
+    openinsightsFetchDependencies,
+    url,
+    /**
+     * fetchTimeoutInMilliseconds
+     */
+    8000,
+    /**
+     * requestHeaders
+     */
+    null,
+    /**
+     * beforeTest
+     */
+    async () => ({ timeout: false }),
+    /**
+     * beforeBeacon
+     *
+     * Optional processing before sending a beacon (e.g. obtain client DNS resolver IP)
+     */
+    async (result, response, performanceEntry) => {},
+    /**
+     * sendBeacon
+     *
+     * Clients can beacon data any way they like here (Beacon API, Fetch API, <img src="...">, etc.)
+     *
+     * @param result An object containing the HTTP status and the Resource Timing entry from which to produce a beacon payload
+     */
+    (result) => {
+      navigator.sendBeacon(
+        "https://some.beacon.ingest.service/",
+        new Blob(
+          [
+            JSON.stringify({
+              /* some encoded data */
+            }),
+          ],
+          { type: "application/json" },
+        ),
+      )
+    },
+    /**
+     * afterTest
+     */
+    (result) => {},
+    /**
+     * onError
+     */
+    (error: unknown) => {},
+  )
+}
+
+const sessionStartupFuncs = [
+  {
+    fetchSessionConfiguration: async () => {
+      return await fetch(
+        "https://some.session.config.service/sessionconfig.json",
+      ).then((response) => response.json())
+    },
+    produceExecutables: (sessionConfiguration) => {
+      // Produce any number of tests to be run sequentially
+      return [
+        {
+          execute: customFetchBehavior(
+            sessionConfiguration,
+            /**
+             * A test object served with:
+             * - `access-control-allow-origin: *`
+             * - `timing-allow-origin: *`
+             */
+            "https://some.service.to.test/test.png",
+          ),
+        },
+        /* ... */
+      ]
+    },
+  },
+  /* ... */
+]
+
+openinsights.init(
+  /**
+   * getDocumentReadyState
+   */
+  () => document.readyState,
+  /**
+   * addDocumentReadyStateChangeListener
+   */
+  (callback) => document.addEventListener("readystatechange", callback),
+  /**
+   * sessionConfigDelayInMilliseconds
+   */
+  10000,
+  /**
+   * sessionStartupFuncs
+   */
+  sessionStartupFuncs,
+)
+```
 
 ## Development
 

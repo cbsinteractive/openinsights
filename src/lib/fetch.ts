@@ -1,6 +1,6 @@
 import { EntryAwaiter, PerformanceEntryManager } from "./resourceTiming"
 
-export interface Dependencies {
+export type Dependencies = {
     clearTimeout: (timeoutID: number) => void
     fetch: (url: string, options?: RequestInit) => Promise<Response>
     newAbortController: () => AbortController
@@ -22,8 +22,10 @@ export type FetchTestResult = {
  *
  * @param dependencies A set of dependencies required to perform a fetch test.
  * @param url The URL to test.
- * @param fetchTimeout The maximum time to wait in milliseconds before cancelling the test.
- * @param requestHeaders An optional set of request headers to send when fetching the test resource.
+ * @param fetchTimeoutInMilliseconds The maximum time to wait in milliseconds before
+ * cancelling the test.
+ * @param requestHeaders An optional set of request headers to send when fetching
+ * the test resource.
  * @param beforeTest A callback to run before issuing the fetch request
  * @param beforeBeacon A callback giving the client an opportunity to produce
  * update their test result based on the Response object and the Resource Timing
@@ -36,7 +38,7 @@ export type FetchTestResult = {
 export async function fetch<T extends FetchTestResult>(
     dependencies: Dependencies,
     url: string,
-    fetchTimeout: number,
+    fetchTimeoutInMilliseconds: number,
     requestHeaders: Record<string, string> | null,
     beforeTest: () => Promise<T>,
     beforeBeacon: (
@@ -62,7 +64,7 @@ export async function fetch<T extends FetchTestResult>(
         const response = await fetchObject(
             dependencies,
             url,
-            fetchTimeout,
+            fetchTimeoutInMilliseconds,
             requestHeaders,
             result,
         )
@@ -89,7 +91,7 @@ export async function fetch<T extends FetchTestResult>(
 async function fetchObject<T extends FetchTestResult>(
     dependencies: Dependencies,
     url: string,
-    fetchTimeout: number,
+    fetchTimeoutInMilliseconds: number,
     requestHeaders: Record<string, string> | null,
     result: T,
 ) {
@@ -99,7 +101,7 @@ async function fetchObject<T extends FetchTestResult>(
         result.timeout = true
         // Force download to stop
         abortController.abort()
-    }, fetchTimeout)
+    }, fetchTimeoutInMilliseconds)
     const options: RequestInit = {
         method: "GET",
         // Explicitly prevent request from outliving the page
