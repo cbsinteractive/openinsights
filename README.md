@@ -6,10 +6,10 @@ Open Insights is a framework for constructing browser-based RUM clients.
 
 ## Why Use It
 
-- Open Insights represents a collaboration by industry members to measure, and ultimately improve, the internet as a whole.
-- Open Insights is designed to work with multiple vendors.
-- Open Insights is meant to be self-hosted, unlike many vendor-centric, browser-based RUM clients.
-- Open Insights gives the site owner control over code compilation and included functionality.
+- Product of collaboration by industry members to measure, and ultimately improve, the internet as a whole.
+- Designed to work with multiple vendors.
+- Meant to be self-hosted, unlike many vendor-centric, browser-based RUM clients.
+- Gives the site owner control over code compilation and included functionality.
 
 ## Example
 
