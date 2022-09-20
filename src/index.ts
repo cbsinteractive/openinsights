@@ -34,6 +34,7 @@
 
 export type { Executable } from "./@types"
 export { init } from "./init"
+export { defaultSessionProcessFunc } from "./lib/defaultSessionProcessFunc"
 export { fetch } from "./lib/fetch"
 export type {
     Dependencies as FetchDependencies,
