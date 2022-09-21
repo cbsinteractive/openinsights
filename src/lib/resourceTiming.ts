@@ -69,11 +69,6 @@ export class PerformanceEntryManager {
                 }
             },
         )
-        this._observer.observe({
-            type: "resource",
-            // Disregard entries buffered before the observer was created
-            buffered: false,
-        })
     }
 
     /**
@@ -95,6 +90,11 @@ export class PerformanceEntryManager {
             callback,
             registeredAt: this._dependencies.newDate(),
         }
+        this._observer.observe({
+            type: "resource",
+            // Disregard entries buffered before the observer was created
+            buffered: false,
+        })
     }
 
     /**
@@ -105,6 +105,7 @@ export class PerformanceEntryManager {
         if (this._callbackBundle && this._callbackBundle.url === url) {
             delete this._callbackBundle
         }
+        this._observer.disconnect()
     }
 }
 
