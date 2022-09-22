@@ -7,8 +7,8 @@ import {
 } from "../testExtras"
 import { fetch } from "./fetch"
 import {
+    createPerformanceEntryManager,
     PerformanceEntryAwaitTimeout,
-    PerformanceEntryManager,
     RegisteredCallbackNotConsumedError,
 } from "./resourceTiming"
 
@@ -33,7 +33,7 @@ test("Find entry immediately", async () => {
         fetch: jest.fn().mockResolvedValueOnce(testResponse),
         newAbortController: jest.fn().mockReturnValueOnce(testAbortController),
         newDate: jest.fn(),
-        performanceEntryManager: new PerformanceEntryManager(
+        performanceEntryManager: createPerformanceEntryManager(
             performanceEntryManagerDependencies,
         ),
         setTimeout: jest.fn(),
@@ -99,7 +99,7 @@ test("Find entry after multiple retries", async () => {
             .mockReturnValueOnce(new Date("2020-01-10T10:20:00Z"))
             .mockReturnValueOnce(new Date("2020-01-10T10:20:00.2Z"))
             .mockReturnValueOnce(new Date("2020-01-10T10:20:00.4Z")),
-        performanceEntryManager: new PerformanceEntryManager(
+        performanceEntryManager: createPerformanceEntryManager(
             performanceEntryManagerDependencies,
         ),
         setTimeout: jest.fn(),
@@ -184,7 +184,7 @@ test("Prevent simultaneous measurements", async () => {
             .mockReturnValueOnce(new Date("2020-01-10T10:20:00Z"))
             .mockReturnValueOnce(new Date("2020-01-10T10:20:00.2Z"))
             .mockReturnValueOnce(new Date("2020-01-10T10:20:00.4Z")),
-        performanceEntryManager: new PerformanceEntryManager(
+        performanceEntryManager: createPerformanceEntryManager(
             performanceEntryManagerDependencies,
         ),
         setTimeout: jest.fn(),
@@ -270,7 +270,7 @@ test("Performance entry not found", async () => {
         newDate: jest
             .fn()
             .mockReturnValueOnce(new Date("2020-01-10T10:20:00Z")),
-        performanceEntryManager: new PerformanceEntryManager(
+        performanceEntryManager: createPerformanceEntryManager(
             performanceEntryManagerDependencies,
         ),
         setTimeout: jest.fn(),
@@ -342,7 +342,7 @@ test("Timeout during blob phase", async () => {
         newDate: jest
             .fn()
             .mockReturnValueOnce(new Date("2020-01-10T10:20:00Z")),
-        performanceEntryManager: new PerformanceEntryManager(
+        performanceEntryManager: createPerformanceEntryManager(
             performanceEntryManagerDependencies,
         ),
         setTimeout: jest.fn(),

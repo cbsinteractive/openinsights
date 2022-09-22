@@ -36,6 +36,14 @@ type Dependencies = {
     ) => PerformanceObserver
 }
 
+export interface PerformanceEntryManager {
+    registerCallback(
+        url: string,
+        callback: (entry: PerformanceEntry) => void,
+    ): void
+    unregisterCallback(url: string): void
+}
+
 /**
  * A class to monitor the Resource Timing buffer for entries of interest.
  * Only one URL at a time is supported. Clients should be prepared to handle
@@ -43,7 +51,7 @@ type Dependencies = {
  * We base this limitation on the idea that it's better avoid measuring
  * resources in parallel.
  */
-export class PerformanceEntryManager {
+class PerformanceEntryManagerImpl implements PerformanceEntryManager {
     private _observer
     private _callbackBundle?: RegisteredCallbackBundle
     constructor(private _dependencies: Dependencies) {
@@ -108,6 +116,10 @@ export class PerformanceEntryManager {
         this._observer.disconnect()
     }
 }
+
+export const createPerformanceEntryManager: (
+    dependencies: Dependencies,
+) => PerformanceEntryManager = (d) => new PerformanceEntryManagerImpl(d)
 
 /**
  * A class to manage waiting for a certain `PerformanceEntry` to appear in the
