@@ -1,8 +1,4 @@
-import {
-    newPerformanceObserverEntryList,
-    runEventLoop,
-    TestAbortController,
-} from "../testExtras"
+import { runEventLoop } from "../testExtras"
 import { fetch } from "./fetch"
 import {
     createPerformanceEntryManager,
@@ -21,7 +17,6 @@ test("Find entry immediately", async () => {
             .fn<PerformanceObserver, [PerformanceObserverCallback]>()
             .mockReturnValue(mockPerformanceObserver),
     }
-    const testAbortController = new TestAbortController()
     const testResponse = {
         blob: jest
             .fn()
@@ -32,7 +27,7 @@ test("Find entry immediately", async () => {
     const dependencies = {
         clearTimeout: jest.fn(),
         fetch: jest.fn().mockResolvedValueOnce(testResponse),
-        newAbortController: jest.fn().mockReturnValueOnce(testAbortController),
+        newAbortController: jest.fn().mockReturnValueOnce({}),
         newDate: jest.fn(),
         performanceEntryManager: createPerformanceEntryManager(
             performanceEntryManagerDependencies,
@@ -60,9 +55,13 @@ test("Find entry immediately", async () => {
         performanceEntryManagerDependencies.newPerformanceObserver.mock
             .calls[0][0]
 
-    // Simulate production code not finding the entry
+    // Simulate production finding the entry on the first try
     prodPerformanceObserverCallback(
-        newPerformanceObserverEntryList([{} as PerformanceEntry]),
+        {
+            getEntriesByName: jest
+                .fn()
+                .mockReturnValueOnce([{} as PerformanceEntry]),
+        } as unknown as PerformanceObserverEntryList,
         mockPerformanceObserver,
     )
 
@@ -86,7 +85,6 @@ test("Find entry after multiple retries", async () => {
             .fn<PerformanceObserver, [PerformanceObserverCallback]>()
             .mockReturnValue(mockPerformanceObserver),
     }
-    const testAbortController = new TestAbortController()
     const testResponse = {
         blob: jest
             .fn()
@@ -97,7 +95,7 @@ test("Find entry after multiple retries", async () => {
     const dependencies = {
         clearTimeout: jest.fn(),
         fetch: jest.fn().mockResolvedValueOnce(testResponse),
-        newAbortController: jest.fn().mockReturnValueOnce(testAbortController),
+        newAbortController: jest.fn().mockReturnValueOnce({}),
         newDate: jest
             .fn()
             .mockReturnValueOnce(new Date("2020-01-10T10:20:00Z"))
@@ -131,7 +129,9 @@ test("Find entry after multiple retries", async () => {
 
     // Simulate production code not finding the entry
     prodPerformanceObserverCallback(
-        newPerformanceObserverEntryList([]),
+        {
+            getEntriesByName: jest.fn().mockReturnValueOnce([]),
+        } as unknown as PerformanceObserverEntryList,
         mockPerformanceObserver,
     )
 
@@ -143,7 +143,11 @@ test("Find entry after multiple retries", async () => {
     // Allow production code to "find" the entry before the next
     // simulated timeout elapses
     prodPerformanceObserverCallback(
-        newPerformanceObserverEntryList([{} as PerformanceEntry]),
+        {
+            getEntriesByName: jest
+                .fn()
+                .mockReturnValueOnce([{} as PerformanceEntry]),
+        } as unknown as PerformanceObserverEntryList,
         mockPerformanceObserver,
     )
     await runEventLoop()
@@ -168,7 +172,6 @@ test("Prevent simultaneous measurements", async () => {
             .fn<PerformanceObserver, [PerformanceObserverCallback]>()
             .mockReturnValue(mockPerformanceObserver),
     }
-    const testAbortController = new TestAbortController()
     const testResponse = {
         blob: jest
             .fn()
@@ -179,7 +182,7 @@ test("Prevent simultaneous measurements", async () => {
     const dependencies = {
         clearTimeout: jest.fn(),
         fetch: jest.fn().mockResolvedValueOnce(testResponse),
-        newAbortController: jest.fn().mockReturnValueOnce(testAbortController),
+        newAbortController: jest.fn().mockReturnValueOnce({}),
         newDate: jest
             .fn()
             .mockReturnValueOnce(new Date("2020-01-10T10:20:00Z"))
@@ -237,9 +240,12 @@ test("Prevent simultaneous measurements", async () => {
         performanceEntryManagerDependencies.newPerformanceObserver.mock
             .calls[0][0]
 
-    // Simulate production code not finding the entry
     prodPerformanceObserverCallback(
-        newPerformanceObserverEntryList([{} as PerformanceEntry]),
+        {
+            getEntriesByName: jest
+                .fn()
+                .mockReturnValueOnce([{} as PerformanceEntry]),
+        } as unknown as PerformanceObserverEntryList,
         mockPerformanceObserver,
     )
     await fetchResult1
@@ -259,7 +265,6 @@ test("Performance entry not found", async () => {
             .fn<PerformanceObserver, [PerformanceObserverCallback]>()
             .mockReturnValue(mockPerformanceObserver),
     }
-    const testAbortController = new TestAbortController()
     const testResponse = {
         blob: jest
             .fn()
@@ -270,7 +275,7 @@ test("Performance entry not found", async () => {
     const dependencies = {
         clearTimeout: jest.fn(),
         fetch: jest.fn().mockResolvedValueOnce(testResponse),
-        newAbortController: jest.fn().mockReturnValueOnce(testAbortController),
+        newAbortController: jest.fn().mockReturnValueOnce({}),
         newDate: jest
             .fn()
             .mockReturnValueOnce(new Date("2020-01-10T10:20:00Z")),
@@ -333,7 +338,6 @@ test("Timeout during blob phase", async () => {
             .fn<PerformanceObserver, [PerformanceObserverCallback]>()
             .mockReturnValue(mockPerformanceObserver),
     }
-    const testAbortController = new TestAbortController()
     const testResponse = {
         blob: jest.fn().mockImplementationOnce(() => {
             // Simulate a timeout
@@ -344,7 +348,7 @@ test("Timeout during blob phase", async () => {
     const dependencies = {
         clearTimeout: jest.fn(),
         fetch: jest.fn().mockResolvedValueOnce(testResponse),
-        newAbortController: jest.fn().mockReturnValueOnce(testAbortController),
+        newAbortController: jest.fn().mockReturnValueOnce({}),
         newDate: jest
             .fn()
             .mockReturnValueOnce(new Date("2020-01-10T10:20:00Z")),
