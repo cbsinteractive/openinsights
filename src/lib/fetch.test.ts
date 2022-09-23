@@ -3,7 +3,6 @@ import {
     runEventLoop,
     TestAbortController,
     TestPerformanceObserver,
-    TestPerformanceResourceTiming,
 } from "../testExtras"
 import { fetch } from "./fetch"
 import {
@@ -61,7 +60,7 @@ test("Find entry immediately", async () => {
 
     // Simulate production code not finding the entry
     prodPerformanceObserverCallback(
-        newPerformanceObserverEntryList([new TestPerformanceResourceTiming()]),
+        newPerformanceObserverEntryList([{} as PerformanceEntry]),
         mockPerformanceObserver,
     )
 
@@ -139,7 +138,7 @@ test("Find entry after multiple retries", async () => {
     // Allow production code to "find" the entry before the next
     // simulated timeout elapses
     prodPerformanceObserverCallback(
-        newPerformanceObserverEntryList([new TestPerformanceResourceTiming()]),
+        newPerformanceObserverEntryList([{} as PerformanceEntry]),
         mockPerformanceObserver,
     )
     await runEventLoop()
@@ -232,7 +231,7 @@ test("Prevent simultaneous measurements", async () => {
 
     // Simulate production code not finding the entry
     prodPerformanceObserverCallback(
-        newPerformanceObserverEntryList([new TestPerformanceResourceTiming()]),
+        newPerformanceObserverEntryList([{} as PerformanceEntry]),
         mockPerformanceObserver,
     )
     await fetchResult1
