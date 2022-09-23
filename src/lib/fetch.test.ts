@@ -1,6 +1,6 @@
 import {
-    asyncFunc,
     newPerformanceObserverEntryList,
+    runEventLoop,
     TestAbortController,
     TestPerformanceObserver,
     TestPerformanceResourceTiming,
@@ -131,25 +131,19 @@ test("Find entry after multiple retries", async () => {
         mockPerformanceObserver,
     )
 
-    // Await asynchronously in order to let other tasks run
-    await asyncFunc(async () => {
-        // Simulate retry
-        dependencies.setTimeout.mock.calls[1][0]()
-        await asyncFunc(async () => {
-            dependencies.setTimeout.mock.calls[2][0]()
+    await runEventLoop()
+    dependencies.setTimeout.mock.calls[1][0]()
+    await runEventLoop()
+    dependencies.setTimeout.mock.calls[2][0]()
 
-            // Allow production code to "find" the entry before the next
-            // simulated timeout elapses
-            prodPerformanceObserverCallback(
-                newPerformanceObserverEntryList([
-                    new TestPerformanceResourceTiming(),
-                ]),
-                mockPerformanceObserver,
-            )
-            await asyncFunc(() => dependencies.setTimeout.mock.calls[3][0]())
-        })
-    })
-
+    // Allow production code to "find" the entry before the next
+    // simulated timeout elapses
+    prodPerformanceObserverCallback(
+        newPerformanceObserverEntryList([new TestPerformanceResourceTiming()]),
+        mockPerformanceObserver,
+    )
+    await runEventLoop()
+    dependencies.setTimeout.mock.calls[3][0]()
     await fetchResult
 
     // Verify
@@ -308,9 +302,8 @@ test("Performance entry not found", async () => {
     )
 
     for (let i = 1; i < 12; i++) {
-        await asyncFunc(() => {
-            dependencies.setTimeout.mock.calls[i][0]()
-        })
+        await runEventLoop()
+        dependencies.setTimeout.mock.calls[i][0]()
     }
 
     await fetchResult

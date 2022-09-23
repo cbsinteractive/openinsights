@@ -1,8 +1,8 @@
 /**
- * Run a quick asynchronous function
+ * Simulate an event loop running to allow awaited processes to complete
  */
-export function asyncFunc<T>(fn: () => T) {
-    return new Promise<T>((resolve) => setTimeout(() => resolve(fn()), 0))
+export function runEventLoop() {
+    return new Promise<void>((resolve) => setTimeout(() => resolve(), 0))
 }
 
 export function newPerformanceObserverEntryList(entries: PerformanceEntryList) {
