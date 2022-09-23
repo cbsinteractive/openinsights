@@ -2,7 +2,6 @@ import {
     newPerformanceObserverEntryList,
     runEventLoop,
     TestAbortController,
-    TestPerformanceObserver,
 } from "../testExtras"
 import { fetch } from "./fetch"
 import {
@@ -12,7 +11,10 @@ import {
 } from "./resourceTiming"
 
 test("Find entry immediately", async () => {
-    const mockPerformanceObserver = new TestPerformanceObserver()
+    const mockPerformanceObserver = {
+        disconnect: jest.fn(),
+        observe: jest.fn(),
+    } as unknown as PerformanceObserver
     const performanceEntryManagerDependencies = {
         newDate: jest.fn(),
         newPerformanceObserver: jest
@@ -74,7 +76,10 @@ test("Find entry immediately", async () => {
 })
 
 test("Find entry after multiple retries", async () => {
-    const mockPerformanceObserver = new TestPerformanceObserver()
+    const mockPerformanceObserver = {
+        disconnect: jest.fn(),
+        observe: jest.fn(),
+    } as unknown as PerformanceObserver
     const performanceEntryManagerDependencies = {
         newDate: jest.fn(),
         newPerformanceObserver: jest
@@ -153,7 +158,10 @@ test("Find entry after multiple retries", async () => {
 })
 
 test("Prevent simultaneous measurements", async () => {
-    const mockPerformanceObserver = new TestPerformanceObserver()
+    const mockPerformanceObserver = {
+        disconnect: jest.fn(),
+        observe: jest.fn(),
+    } as unknown as PerformanceObserver
     const performanceEntryManagerDependencies = {
         newDate: jest.fn(),
         newPerformanceObserver: jest
@@ -241,7 +249,10 @@ test("Prevent simultaneous measurements", async () => {
 }, 500)
 
 test("Performance entry not found", async () => {
-    const mockPerformanceObserver = new TestPerformanceObserver()
+    const mockPerformanceObserver = {
+        disconnect: jest.fn(),
+        observe: jest.fn(),
+    } as unknown as PerformanceObserver
     const performanceEntryManagerDependencies = {
         newDate: jest.fn(),
         newPerformanceObserver: jest
@@ -312,7 +323,10 @@ test("Performance entry not found", async () => {
 })
 
 test("Timeout during blob phase", async () => {
-    const mockPerformanceObserver = new TestPerformanceObserver()
+    const mockPerformanceObserver = {
+        disconnect: jest.fn(),
+        observe: jest.fn(),
+    } as unknown as PerformanceObserver
     const performanceEntryManagerDependencies = {
         newDate: jest.fn(),
         newPerformanceObserver: jest

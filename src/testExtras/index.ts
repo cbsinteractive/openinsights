@@ -56,9 +56,3 @@ export class TestAbortController implements AbortController {
      */
     abort = jest.fn()
 }
-
-export class TestPerformanceObserver implements PerformanceObserver {
-    disconnect = jest.fn()
-    observe = jest.fn()
-    takeRecords = jest.fn()
-}
