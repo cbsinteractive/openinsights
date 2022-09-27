@@ -83,8 +83,8 @@ export async function fetch<T extends FetchTestResult>(
         // Swallow errors but provide caller with an opportunity to respond
         onError(e)
     }
-    // Unregistering the performance entry callback **once**, as late as in
-    // the measurement sequences as possible
+    // Unregister the performance entry callback as late in the measurement
+    // sequence as possible
     dependencies.performanceEntryManager.unregisterCallback(url)
 }
 
