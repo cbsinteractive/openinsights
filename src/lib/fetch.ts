@@ -41,14 +41,7 @@ export async function fetch<T extends FetchTestResult>(
     fetchTimeoutInMilliseconds: number,
     requestHeaders: Record<string, string> | null,
     beforeTest: () => Promise<T>,
-    beforeBeacon: (
-        result: T,
-        response: Response,
-        /**
-         * The performance timeline entry for the caller to validate.
-         */
-        performanceEntry: PerformanceEntry,
-    ) => Promise<void>,
+    beforeBeacon: (result: T, response: Response) => Promise<void>,
     sendBeacon: (result: T) => void,
     afterTest: (result: T) => void,
     onError: (error: unknown) => void,
@@ -73,8 +66,8 @@ export async function fetch<T extends FetchTestResult>(
             if (entry) {
                 result.entry = entry
                 // Give the caller an opportunity to adorn the result based
-                // on the response and performance entry
-                await beforeBeacon(result, response, entry)
+                // on the response and data gathered so far
+                await beforeBeacon(result, response)
             }
         }
         sendBeacon(result)
