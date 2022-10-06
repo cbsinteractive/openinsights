@@ -1,263 +1,117 @@
-import { BeaconHandler } from "../util/beaconHandler"
-import { asyncGetEntry } from "./resourceTiming"
-import { Test } from "./test"
+import { EntryAwaiter, PerformanceEntryManager } from "./resourceTiming"
 
-/**
- * Contains common fetch configuration attributes
- */
-export interface FetchConfiguration {
-    /**
-     * Time to wait before aborting fetch, in milliseconds.
-     */
-    timeout?: number
-    /**
-     * PerformanceObserver timeout in milliseconds.
-     */
-    performanceTimingObserverTimeout?: number
+export type Dependencies = {
+    clearTimeout: (timeoutID: number) => void
+    fetch: (url: string, options?: RequestInit) => Promise<Response>
+    newAbortController: () => AbortController
+    newDate: () => Date
+    performanceEntryManager: PerformanceEntryManager
+    setTimeout: (fn: () => void, timeout: number) => number
 }
 
-export interface FetchTestResultBundle {
-    timeoutTriggered?: boolean
-}
-
-export interface Dependencies {
-    window: Window & typeof globalThis
+export type FetchTestResult = {
+    status?: number
+    error?: unknown
+    timeout: boolean
+    entry?: PerformanceEntry
 }
 
 /**
- * Class representing a basic "fetch" test. It fetches a supplied resource from the
- * network and collects the corresponding entry from the Performance timeline.
+ * An asynchronous function encapsulating a configurable test based on the
+ * [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API).
  *
- * Along with its parent class {@link Test}, the class provides a number of hooks
- * enabling providers to control certain implementation details supporting their
- * use case.
- *
- * @typeParam C The type to be used for the internal test configuration.
- * @typeParam R The type to be used for fetch test results.
- * @typeParam D The type to be used for the fetch beacon data.
- * @typeParam SBR The type to be used for send beacon results.
+ * @param dependencies A set of dependencies required to perform a fetch test.
+ * @param url The URL to test.
+ * @param fetchTimeoutInMilliseconds The maximum time to wait in milliseconds before
+ * cancelling the test.
+ * @param requestHeaders An optional set of request headers to send when fetching
+ * the test resource.
+ * @param beforeTest A callback to run before issuing the fetch request
+ * @param beforeBeacon A callback giving the client an opportunity to produce
+ * update their test result based on the Response object and the Resource Timing
+ * entry. This *might* involve network activity, so it returns a promise.
+ * @param sendBeacon A callback allowing the client to send a beacon.
+ * @param afterTest A callback allowing the client to perform an cleanup work.
+ * @param onError A callback invoked if any error is encounter *outside of*
+ * the fetch request context.
  */
-export abstract class Fetch<
-    C extends FetchConfiguration,
-    R extends FetchTestResultBundle,
-    D,
-    SBR,
-> extends Test<C, R, D, SBR> {
-    /**
-     * An AbortController instance used to abort fetch requests that do not
-     * complete in a timely manner.
-     */
-    private _abortController: AbortController = new AbortController()
-
-    /**
-     * Diagnostic timestamps to help grok issues related to the asynchronous
-     * nature of this workflow.
-     */
-    private _fetchStartedAt?: Date
-    private _abortTimeoutClearedAt?: Date
-    private _errorCaughtAt?: Date
-    private _fetchAbortedAt?: Date
-    private _fetchCompletedAt?: Date
-    private _blobBeganAt?: Date
-    private _blobCompletedAt?: Date
-
-    constructor(
-        private _deps: Dependencies,
-        config: C,
-        testResult: R,
-        beaconHandler?: BeaconHandler<SBR>,
-    ) {
-        super(config, testResult, beaconHandler)
-    }
-
-    /**
-     * A hook enabling providers to generate a test URL at runtime.
-     * @remarks
-     * A provider may cache the result of the first call to this method and
-     * reuse the value on subsequent calls.
-     */
-    abstract get resourceURL(): string
-
-    /**
-     * A hook enabling providers to update the test results object.
-     */
-    abstract updateFetchTestResults(
-        response: Response,
-        entry: PerformanceResourceTiming,
-    ): Promise<void>
-
-    /**
-     * TODO
-     * @param reason
-     */
-    abstract onError(reason: unknown): Promise<void>
-
-    /**
-     * A hook enabling providers to specify a set of zero or more
-     * HTTP request headers to be sent when peforming the fetch.
-     * This is a default implementation that returns an empty set.
-     */
-    get resourceRequestHeaders(): Record<string, string> {
-        return {}
-    }
-
-    /**
-     * A provider may override the default logic used to determine a valid
-     * Resource Timing entry using the optional isValidEntryFunc argument.
-     */
-    makeValidateResourceTimingEntryFunc(): (
-        e: PerformanceResourceTiming,
-    ) => boolean {
-        return (e) => e.requestStart !== 0 && e.connectStart !== e.connectEnd
-    }
-
-    /**
-     * See {@link Test.test}.
-     */
-    test(): Promise<void> {
-        const defaultTimeout = 5000
-        return Promise.all([
-            this.fetchObject(),
-            asyncGetEntry(
-                this._deps.window,
-                this.resourceURL,
-                this.config.performanceTimingObserverTimeout || defaultTimeout,
-                this.makeValidateResourceTimingEntryFunc(),
-            ),
-        ])
-            .then(([response, entry]): Promise<void> => {
-                // WARNING: If we get here, then the fetch technically completed,
-                // although the HTTP status may indicate an error condition.
-                // Providers should be aware of this and check `response.status`
-                // if it matters to them.
-                this._fetchCompletedAt = new Date()
-                Fetch.outputEventTimeElapsedMessage(
-                    "Fetch completed",
-                    this._fetchStartedAt,
-                    this._fetchCompletedAt,
-                )
-                return this.updateFetchTestResults(response, entry)
-            })
-            .catch((reason) => {
-                this._errorCaughtAt = new Date()
-                Fetch.outputEventTimeElapsedMessage(
-                    "Error caught",
-                    this._fetchStartedAt,
-                    this._errorCaughtAt,
-                    reason,
-                )
-                return this.onError(reason)
-            })
-    }
-
-    /**
-     * Fetch the test object. This produces the network activity to be
-     * measured.
-     *
-     * @remarks
-     * The provider has an opportunity to specify zero or more HTTP request
-     * headers to be sent.
-     *
-     * There's no catch handler here. Look for errors in the catch handler
-     * found in @link{Test.execute}.
-     *
-     * Possible errors from the Fetch API under normal circumstances:
-     *
-     * * connection failure, e.g. firewall issue or misconfigured DNS.
-     *
-     *   Unfortunately by the time the browser registers this kind of problem,
-     *   the client should generally have already reported some error and
-     *   moved on. We will attempt to avoid this possibility by installing our
-     *   own timeout handler and aborting the request if we can.
-     *
-     * * CORS issues.
-     *
-     *   If the request succeeds but the response is missing the necessary
-     *   CORS headers, the request fails quickly and the Promise rejects.
-     *
-     * In general, don't base any logic on the reason given. Each user agent
-     * provides its own set of error descriptions, which presumably can change
-     * at any time.
-     */
-    fetchObject(): Promise<Response> {
-        const init: RequestInit = {}
-        if (Object.keys(this.resourceRequestHeaders).length) {
-            init.headers = this.resourceRequestHeaders
+export async function fetch<T extends FetchTestResult>(
+    dependencies: Dependencies,
+    url: string,
+    fetchTimeoutInMilliseconds: number,
+    requestHeaders: Record<string, string> | null,
+    beforeTest: () => Promise<T>,
+    beforeBeacon: (result: T, response: Response) => Promise<void>,
+    sendBeacon: (result: T) => void,
+    afterTest: (result: T) => void,
+    onError: (error: unknown) => void,
+) {
+    try {
+        const entryAwaiter = new EntryAwaiter(
+            url,
+            dependencies.newDate,
+            dependencies.setTimeout,
+            dependencies.performanceEntryManager,
+        )
+        const result = await beforeTest()
+        const response = await fetchObject(
+            dependencies,
+            url,
+            fetchTimeoutInMilliseconds,
+            requestHeaders,
+            result,
+        )
+        if (response) {
+            const entry = await entryAwaiter.awaitEntry()
+            if (entry) {
+                result.entry = entry
+                // Give the caller an opportunity to adorn the result based
+                // on the response and data gathered so far
+                await beforeBeacon(result, response)
+            }
         }
-        const request = new Request(this.resourceURL, init)
-        const args = this.config.timeout
-            ? { signal: this._abortController.signal }
-            : {}
-        // Initiate a timeout to let us abort the request if it takes too long
-        if (this.config.timeout) {
-            this.setTimeoutId(
-                window.setTimeout(() => {
-                    this._fetchAbortedAt = new Date()
-                    Fetch.outputEventTimeElapsedMessage(
-                        "Fetch aborted",
-                        this._fetchStartedAt,
-                        this._fetchAbortedAt,
-                    )
-                    this._abortController.abort()
-                    this.testResults.timeoutTriggered = true
-                }, this.config.timeout),
-            )
-        }
-        this._fetchStartedAt = new Date()
-        let savedResponse: Response
-        return fetch(request, args)
-            .then((resp) => {
-                savedResponse = resp
-                this._blobBeganAt = new Date()
-                Fetch.outputEventTimeElapsedMessage(
-                    "Blob began",
-                    this._fetchStartedAt,
-                    this._blobBeganAt,
-                )
-                if (!resp.ok) {
-                    throw new Error(
-                        `Network response status not okay: ${resp.status}`,
-                    )
-                }
-                return resp.blob()
-            })
-            .then(() => {
-                this.clearTimeout()
-                this._blobCompletedAt = this._abortTimeoutClearedAt = new Date()
-                Fetch.outputEventTimeElapsedMessage(
-                    "Abort timeout cleared",
-                    this._fetchStartedAt,
-                    this._abortTimeoutClearedAt,
-                )
-                Fetch.outputEventTimeElapsedMessage(
-                    "Blob duration",
-                    this._blobBeganAt,
-                    this._blobCompletedAt,
-                )
-                return savedResponse
-            })
+        sendBeacon(result)
+        afterTest(result)
+    } catch (e) {
+        // Swallow errors but provide caller with an opportunity to respond
+        onError(e)
     }
+    // Unregister the performance entry callback as late in the measurement
+    // sequence as possible
+    dependencies.performanceEntryManager.unregisterCallback(url)
+}
 
-    static outputEventTimeElapsedMessage(
-        intervalName: string,
-        startedAt?: Date,
-        endedAt?: Date,
-        addendum?: string,
-    ): void {
-        if (addendum) {
-            addendum = `; ${addendum}`
-        } else {
-            addendum = ""
-        }
-        if (!startedAt) {
-            // console.log("Start timestamp not provided")
-            return
-        }
-        if (!endedAt) {
-            // console.log("End timestamp not provided")
-            return
-        }
-        // const diffInMs = endedAt.getTime() - startedAt.getTime()
-        // console.log(`${intervalName} after ${diffInMs} ms${addendum}`)
+async function fetchObject<T extends FetchTestResult>(
+    dependencies: Dependencies,
+    url: string,
+    fetchTimeoutInMilliseconds: number,
+    requestHeaders: Record<string, string> | null,
+    result: T,
+) {
+    const abortController = dependencies.newAbortController()
+    const timeoutID = dependencies.setTimeout(() => {
+        // Record that a timeout took place
+        result.timeout = true
+        // Force download to stop
+        abortController.abort()
+    }, fetchTimeoutInMilliseconds)
+    const options: RequestInit = {
+        method: "GET",
+        // Explicitly prevent request from outliving the page
+        keepalive: false,
+        signal: abortController.signal,
+    }
+    if (requestHeaders) {
+        options.headers = { ...requestHeaders }
+    }
+    try {
+        const response = await dependencies.fetch(url, options)
+        result.status = response.status
+        await response.blob()
+        dependencies.clearTimeout(timeoutID)
+        return response
+    } catch (e) {
+        // Let caller handle the error later
+        result.error = e
     }
 }

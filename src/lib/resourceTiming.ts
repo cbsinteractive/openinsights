@@ -1,115 +1,173 @@
-import { ResourceTimingEntryValidationPredicate } from "../@types"
-
-export class PerformanceTimingObserverTimeoutError extends Error {
-    constructor(name: string, timeout: number) {
+export class RegisteredCallbackNotConsumedError extends Error {
+    constructor(urlBeingAdded: string, urlStillRegistered: string) {
         super(
-            `Timeout waiting for timing data to appear for ${name} (timeout: ${timeout})`,
+            `Callback not consumed (being added: ${urlBeingAdded}, still registered: ${urlStillRegistered})`,
         )
         Object.setPrototypeOf(this, new.target.prototype)
     }
 }
 
-export class NoValidEntryError extends Error {
-    constructor(name: string, private _entries: PerformanceEntryList) {
+export class PerformanceEntryAwaitTimeout extends Error {
+    constructor(url: string, duration: number, maxWait: number) {
         super(
-            `At least one Resource Timing entry was found for ${name} but none passed validation`,
+            `Failed to find an entry for ${url} after ${duration} milliseconds (max wait ${maxWait})`,
         )
         Object.setPrototypeOf(this, new.target.prototype)
     }
+}
 
-    get entries() {
-        return this._entries
-    }
+type RegisteredCallbackBundle = {
+    /**
+     * The URL of the Resource Timing entry to find.
+     */
+    url: string
+    /**
+     * Consumers use the callback to validate and process the
+     * Resource Timing entry.
+     */
+    callback: (entry: PerformanceEntry) => void
+    registeredAt: Date
+}
+
+type Dependencies = {
+    newDate: () => Date
+    newPerformanceObserver: (
+        callback: PerformanceObserverCallback,
+    ) => PerformanceObserver
+}
+
+export interface PerformanceEntryManager {
+    registerCallback(
+        url: string,
+        callback: (entry: PerformanceEntry) => void,
+    ): void
+    unregisterCallback(url: string): void
 }
 
 /**
- * Given a list of Resource Timing entries, return the first one that matches
- * a set of rules.
- * @remarks
- * Providers may override the default rules.
- * See {@link Fetch.constructor}.
- * @param list The list of entries to test.
- * @param isValidEntryFunc A predicate function used to determine the validity
- * of Resource Timing entries.
+ * A class to monitor the Resource Timing buffer for entries of interest.
+ * Only one URL at a time is supported. Clients should be prepared to handle
+ * any {@link RegisteredCallbackNotConsumedError} that may occur as a result.
+ * We base this limitation on the idea that it's better avoid measuring
+ * resources in parallel.
  */
-function getValidEntry(
-    window: Window & typeof globalThis,
-    list: PerformanceEntryList,
-    isValidEntryFunc: ResourceTimingEntryValidationPredicate,
-): PerformanceResourceTiming | undefined {
-    let k = 0
-    while (k < list.length) {
-        const e = list[k]
-        if (
-            e instanceof window.PerformanceResourceTiming &&
-            isValidEntryFunc(e)
-        ) {
-            return e
-        }
-        k++
-    }
-    return undefined
-}
-
-/**
- * Asyncronusly gets a Resource Timing entry from the performance timeline
- * by its name (url).
- * @remarks
- * It starts a PerformanceObserver to observe the timeline for the entry and
- * resolves with the entry when found. If the timeout is reached before an
- * entry is returned, the Promise is rejected.
- * @param name URL of the of the entry
- * @param timeout Time to wait (in milliseconds) for the observer to find the
- * Resource Timing entry.
- * @param isValidEntryFunc Boolean function used to determine validity of
- * Resource Timing entry.
- */
-export function asyncGetEntry(
-    window: Window & typeof globalThis,
-    name: string,
-    timeout: number,
-    isValidEntryFunc: ResourceTimingEntryValidationPredicate,
-): Promise<PerformanceResourceTiming> {
-    return new window.Promise((resolve, reject): void => {
-        let entry: PerformanceResourceTiming | undefined
-        const observer = new window.PerformanceObserver(
-            (
-                list: PerformanceObserverEntryList,
-                observer: PerformanceObserver,
-            ) => {
-                if (!entry) {
-                    const filteredEntries = list.getEntriesByName(name)
-                    if (filteredEntries.length) {
-                        window.clearTimeout(timeoutId)
-                        observer.disconnect()
-                        entry = getValidEntry(
-                            window,
-                            filteredEntries,
-                            isValidEntryFunc,
-                        )
-                        entry
-                            ? resolve(entry)
-                            : reject(
-                                  new NoValidEntryError(name, filteredEntries),
-                              )
+class PerformanceEntryManagerImpl implements PerformanceEntryManager {
+    private _observer
+    private _callbackBundle?: RegisteredCallbackBundle
+    constructor(private _dependencies: Dependencies) {
+        this._observer = this._dependencies.newPerformanceObserver(
+            (entryList) => {
+                if (this._callbackBundle != undefined) {
+                    // Note that getEntriesBy... *can* produce multiple
+                    // records for the same URL. However, this would be
+                    // considered pathological input indicating a problem
+                    // with the way measurements are being taken. Therefore,
+                    // we tend to overlook that possibility.
+                    const entries = entryList.getEntriesByName(
+                        this._callbackBundle.url,
+                        "resource",
+                    )
+                    if (entries.length) {
+                        // We could validate the entry `name` property, but
+                        // we're counting on getEntriesByName to do the right
+                        // thing
+                        this._callbackBundle.callback(entries[0])
+                        delete this._callbackBundle
                     }
                 }
             },
         )
-        const timeoutId = window.setTimeout(() => {
-            if (!entry) {
-                observer.disconnect()
-                reject(new PerformanceTimingObserverTimeoutError(name, timeout))
-            }
-        }, timeout)
-        try {
-            observer.observe({
-                type: "resource",
-                // Allows the observer access to entries buffered before it was created
-                buffered: true,
-            })
-        } catch (e) {
-            reject(e)
+    }
+
+    /**
+     * Set the URL that the consumer is interested in and a callback to be
+     * executed when it is observed.
+     * @param url The precise URL of interest.
+     * @param callback A callback to be executed when the registered URL
+     * is observed.
+     */
+    registerCallback(url: string, callback: (entry: PerformanceEntry) => void) {
+        if (this._callbackBundle) {
+            throw new RegisteredCallbackNotConsumedError(
+                url,
+                this._callbackBundle.url,
+            )
         }
-    })
+        this._callbackBundle = {
+            url,
+            callback,
+            registeredAt: this._dependencies.newDate(),
+        }
+        this._observer.observe({
+            type: "resource",
+            // Disregard entries buffered before the observer was created
+            buffered: false,
+        })
+    }
+
+    /**
+     * Clear the registered callback if it matches the given URL.
+     * @param url
+     */
+    unregisterCallback(url: string) {
+        if (this._callbackBundle && this._callbackBundle.url === url) {
+            delete this._callbackBundle
+        }
+        this._observer.disconnect()
+    }
+}
+
+export const createPerformanceEntryManager: (
+    dependencies: Dependencies,
+) => PerformanceEntryManager = (d) => new PerformanceEntryManagerImpl(d)
+
+/**
+ * A class to manage waiting for a certain `PerformanceEntry` to appear in the
+ * Resource Timing buffer.
+ *
+ * Please note that observation begins in the constructor. Create an
+ * `EntryAwaiter` *before* you expect the item to appear in the buffer.
+ */
+export class EntryAwaiter {
+    private _entry?: PerformanceEntry
+    constructor(
+        private _url: string,
+        private _newDate: () => Date,
+        private _setTimeout: (fn: () => void, timeout: number) => number,
+        performanceEntryManager: PerformanceEntryManager,
+    ) {
+        performanceEntryManager.registerCallback(_url, (entry) => {
+            this._entry = entry
+        })
+    }
+
+    async awaitEntry() {
+        if (this._entry) {
+            return this._entry
+        }
+        const beganAt = this._newDate().getTime()
+        let entry: PerformanceEntry | undefined
+        const MAX_WAIT = 2000
+        let diff = MAX_WAIT
+        do {
+            const result = await Promise.all([
+                new Promise((resolve: (entry?: PerformanceEntry) => void) => {
+                    resolve(this._entry)
+                }),
+                new Promise((resolve) => {
+                    this._setTimeout(resolve as () => void, 100)
+                }),
+            ])
+            if (result[0]) {
+                entry = result[0]
+                break
+            }
+            const newDate = this._newDate()
+            diff = newDate.getTime() - beganAt
+        } while (!entry && diff < MAX_WAIT)
+        if (entry) {
+            return entry
+        }
+        throw new PerformanceEntryAwaitTimeout(this._url, diff, MAX_WAIT)
+    }
 }

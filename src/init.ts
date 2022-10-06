@@ -1,6 +1,6 @@
-import { ClientSettings, SessionResult } from "./@types"
+import { SessionResult, SessionStartupFuncs } from "./@types"
 import { start, startLater } from "./lib/start"
-import whenReady from "./util/loadWhenDocumentReady"
+import { loadWhenReady } from "./lib/whenDocumentReady"
 
 /**
  * Called by tag owner code to initialize a RUM session, either immediately or
@@ -8,16 +8,23 @@ import whenReady from "./util/loadWhenDocumentReady"
  *
  * @remarks
  * Waits for the page to load before processing.
- *
- * @param settings Specifies settings affecting client behavior. These are
- * determined by the tag owner at runtime, so may be used to specify page-level
- * overrides to general defaults.
  */
-export default function init(settings: ClientSettings): Promise<SessionResult> {
-    return whenReady().then(() => {
-        if (settings.preConfigStartDelay) {
-            return startLater(settings.preConfigStartDelay, settings)
+export function init(
+    getDocumentReadyState: () => DocumentReadyState,
+    addDocumentReadyStateChangeListener: (callback: () => void) => void,
+    sessionConfigDelayInMilliseconds: number,
+    sessionStartupFuncs: SessionStartupFuncs[],
+): Promise<SessionResult> {
+    return loadWhenReady(
+        getDocumentReadyState,
+        addDocumentReadyStateChangeListener,
+    ).then(() => {
+        if (sessionConfigDelayInMilliseconds > 0) {
+            return startLater(
+                sessionConfigDelayInMilliseconds,
+                sessionStartupFuncs,
+            )
         }
-        return start(settings)
+        return start(sessionStartupFuncs)
     })
 }

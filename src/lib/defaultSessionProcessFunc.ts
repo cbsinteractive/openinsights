@@ -1,4 +1,4 @@
-import { Executable, SessionProcessFunc } from "../@types"
+import { Executable } from "../@types"
 import sequence from "./promiseSequence"
 
 /**
@@ -10,13 +10,9 @@ import sequence from "./promiseSequence"
  * @param sessionConfigs Array of {@link Executable} objects from which to
  * generate a Promise<{@link SessionResult}>
  */
-const defaultSessionProcessFunc: SessionProcessFunc = (
-    executables: Executable[],
-) => {
+export function defaultSessionProcessFunc(executables: Executable[]) {
     const makeTaskExecFunc = (task: Executable) => () => task.execute()
     return sequence(executables.map(makeTaskExecFunc)).then((testResults) => {
         return { testResults }
     })
 }
-
-export default defaultSessionProcessFunc

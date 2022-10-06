@@ -1,9 +1,9 @@
 import { Navigator, NetworkInformation } from "../@types"
-import { TestCaseConfig } from "../testUtil"
 import getNetworkInformation from "./getNetworkInformation"
 
 describe("getNetworkInformation", () => {
-    interface TestConfig extends TestCaseConfig {
+    interface TestConfig {
+        description: string
         expectedResult: NetworkInformation
         navigator?: Navigator
     }

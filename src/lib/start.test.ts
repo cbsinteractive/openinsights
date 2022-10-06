@@ -1,75 +1,30 @@
-import { Executable, Provider, SessionResult } from "../@types"
-import { TestCaseConfig } from "../testUtil"
-import {
-    UnitTestProvider,
-    UnitTestSessionConfig,
-} from "../testUtil/unitTestProvider"
-import { startLater } from "./start"
+import { Executable, SessionStartupFuncs } from "../@types"
+import { start, startLater } from "./start"
 
-describe("startLater", () => {
-    interface TestConfig extends TestCaseConfig {
-        providers: Array<Provider>
-        expectedResult: SessionResult
+test("start", async () => {
+    const sessionStartupFuncs: SessionStartupFuncs = {
+        fetchSessionConfiguration: function (): Promise<unknown> {
+            return Promise.resolve("some session config")
+        },
+        produceExecutables: function (
+            _sessionConfiguration: unknown,
+        ): Executable[] {
+            return []
+        },
     }
-    const tests: Array<TestConfig> = [
-        {
-            description: "no providers should run",
-            providers: [
-                new UnitTestProvider({
-                    shouldRun: jest.fn().mockReturnValue(false),
-                }),
-            ],
-            expectedResult: {
-                testResults: [],
-            },
+    await start([sessionStartupFuncs])
+})
+
+test("start later", async () => {
+    const sessionStartupFuncs: SessionStartupFuncs = {
+        fetchSessionConfiguration: function (): Promise<unknown> {
+            return Promise.resolve("some session config")
         },
-        {
-            description: "fetch session config promise rejects",
-            providers: [
-                new UnitTestProvider({
-                    shouldRun: jest.fn().mockReturnValue(true),
-                    fetchSessionConfig: jest.fn().mockRejectedValueOnce("foo"),
-                }),
-            ],
-            expectedResult: {
-                testResults: [],
-            },
+        produceExecutables: function (
+            _sessionConfiguration: unknown,
+        ): Executable[] {
+            return []
         },
-        {
-            description: "happy path",
-            providers: [
-                new UnitTestProvider({
-                    shouldRun: jest.fn().mockReturnValue(true),
-                    fetchSessionConfig: jest.fn<
-                        Promise<UnitTestSessionConfig>,
-                        any
-                    >(() => Promise.resolve({})),
-                    expandTasks: jest.fn<Array<Executable>, any>(() => {
-                        return [
-                            {
-                                execute: jest.fn().mockResolvedValueOnce("foo"),
-                            },
-                            {
-                                execute: jest.fn().mockResolvedValueOnce("bar"),
-                            },
-                            {
-                                execute: jest.fn().mockResolvedValueOnce("baz"),
-                            },
-                        ]
-                    }),
-                }),
-            ],
-            expectedResult: {
-                testResults: ["foo", "bar", "baz"],
-            },
-        },
-    ]
-    tests.forEach((testConfig) => {
-        test(testConfig.description, async () => {
-            const result = await startLater(0, {
-                providers: testConfig.providers,
-            })
-            expect(result).toStrictEqual(testConfig.expectedResult)
-        })
-    })
+    }
+    await startLater(100, [sessionStartupFuncs])
 })
