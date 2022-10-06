@@ -7,11 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [next] - TBD
 
-## [5.0.0] - 2022-10-16
+## [5.0.1] - 2022-10-16
 
 ### Changed
 
 - Removed inheritance-based interface in favor of a simple function focused on fetch tests, with callbacks to support customized behavior and all browser dependencies injected by the caller.
+
+## [5.0.0] - Unpublished
 
 ## [4.4.2] - 2022-08-12
 
