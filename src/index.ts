@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 
-export type { Executable } from "./@types"
+export type { Executable, SessionResult, SessionStartupFuncs } from "./@types"
 export { init } from "./init"
 export { defaultSessionProcessFunc } from "./lib/defaultSessionProcessFunc"
 export { fetch } from "./lib/fetch"
