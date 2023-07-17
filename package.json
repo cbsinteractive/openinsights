@@ -44,5 +44,8 @@
     "tslib": "^2.4.0",
     "typedoc": "^0.24.8",
     "typescript": "^5.1.6"
+  },
+  "engines": {
+    "node": ">=16"
   }
 }
