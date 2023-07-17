@@ -1,18 +1,14 @@
 import path from "path";
 import resolve from "@rollup/plugin-node-resolve";
 import typescript from "@rollup/plugin-typescript";
-import { terser } from "rollup-plugin-terser";
+import terser from "@rollup/plugin-terser";
 import license from "rollup-plugin-license";
 import sizes from "rollup-plugin-sizes";
 
 const __dirname = path.resolve();
 const extensions = [".ts", ".js"];
 const commonPlugins = [
-    terser({
-      output: {
-        comments: false
-      }
-    }),
+    terser(),
     license({
       banner: {
         content: {
@@ -59,4 +55,3 @@ export default [
     }
   }
 ];
-
