@@ -1,5 +1,9 @@
 # Open Insights
 
+**This repository is no longer maintained.**
+
+For current Doppler client work, see https://github.com/cbsinteractive/doppler-client.
+
 [![Lint](https://github.com/cbsinteractive/openinsights/actions/workflows/lint.yml/badge.svg?branch=main-forked)](https://github.com/cbsinteractive/openinsights/actions/workflows/lint.yml)
 
 Open Insights is a framework for constructing browser-based RUM clients.
