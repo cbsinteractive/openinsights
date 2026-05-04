@@ -37,7 +37,7 @@
     "prettier": "^3.0.0",
     "prettier-plugin-organize-imports": "^3.0.3",
     "rimraf": "^5.0.1",
-    "rollup": "^3.26.3",
+    "rollup": "^3.30.0",
     "rollup-plugin-license": "^3.0.1",
     "rollup-plugin-sizes": "^1.0.3",
     "ts-jest": "^29.0.1",
